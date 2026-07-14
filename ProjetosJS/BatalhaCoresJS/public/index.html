@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batalha das Cores - Quiz</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>🎮 Batalha das Cores: O Jogo</h1>
+        <div class="turno-atual">Vez do: <span id="grupo-atual">Grupo 1</span></div>
+    </header>
+
+    <main class="container">
+        <!-- Placar dos Grupos -->
+        <section class="placar">
+            <div class="card-grupo grupo-1 ativo" id="card-g1">
+                <h2>Grupo 1</h2>
+                <p class="pontos" id="pontos-g1">0 pts</p>
+            </div>
+            <div class="card-grupo grupo-2" id="card-g2">
+                <h2>Grupo 2</h2>
+                <p class="pontos" id="pontos-g2">0 pts</p>
+            </div>
+        </section>
+
+        <!-- Tabuleiro Principal -->
+        <section class="tabuleiro-container">
+            <div class="tabuleiro" id="tabuleiro">
+                <!-- O JavaScript (app.js) vai criar os botões aqui dentro automaticamente -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal (Pop-up) de Perguntas -->
+    <div class="modal" id="modal-pergunta">
+        <div class="modal-conteudo">
+            <h3>Pergunta para a Coordenada <span id="modal-coord">--</span></h3>
+            <p id="texto-pergunta">Carregando pergunta...</p>
+            <input type="text" id="resposta-usuario" placeholder="Digite sua resposta aqui...">
+            <div class="botoes-modal">
+                <button onclick="enviarResposta()" class="btn-enviar">Enviar Resposta</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script que conecta a tela ao servidor -->
+    <script src="app.js"></script>
+</body>
+</html>
