@@ -1,122 +1,64 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { Users, FileText, ClipboardList, Package, LayoutDashboard, Receipt } from 'lucide-react';
+import Clientes from './Clientes';
+import Nfe from './Nfe';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Componentes temporários para as outras telas não quebrarem o código
+const Dashboard = () => <div style={{ padding: '24px' }}><h2>📊 Painel Geral (Dashboard)</h2></div>;
+const Orcamentos = () => <div style={{ padding: '24px' }}><h2>📄 Gestão de Orçamentos</h2></div>;
+const OrdensServico = () => <div style={{ padding: '24px' }}><h2>🛠️ Ordens de Serviço (OS)</h2></div>;
+const Produtos = () => <div style={{ padding: '24px' }}><h2>📦 Cadastro de Produtos</h2></div>;
 
+export default function App() {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <Router>
+      <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'sans-serif', backgroundColor: '#f8fafc' }}>
+        
+        {/* MENU LATERAL (SIDEBAR) */}
+        <nav style={{ width: '260px', backgroundColor: '#0f172a', color: '#fff', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ fontSize: '22px', fontWeight: 'bold', letterSpacing: '1px', marginBottom: '32px', color: '#38bdf8', paddingLeft: '8px' }}>
+            VDR GESTOR
+          </div>
 
-      <div className="ticks"></div>
+          <Link to="/" style={menuStyle}><LayoutDashboard size={20} /> Dashboard</Link>
+          <Link to="/clientes" style={menuStyle}><Users size={20} /> Clientes</Link>
+          <Link to="/produtos" style={menuStyle}><Package size={20} /> Produtos</Link>
+          <Link to="/orcamentos" style={menuStyle}><FileText size={20} /> Orçamentos</Link>
+          <Link to="/ordens" style={menuStyle}><ClipboardList size={20} /> Ordens de Serviço</Link>
+          <Link to="/nfe" style={menuStyle}><Receipt size={20} /> Nota Fiscal (NF-e)</Link>
+          
+          <div style={{ marginTop: 'auto', fontSize: '12px', color: '#64748b', textAlign: 'center', borderTop: '1px solid #334155', paddingTop: '12px' }}>
+            v1.0.0 (2026)
+          </div>
+        </nav>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {/* ÁREA DE CONTEÚDO DINÂMICO */}
+        <main style={{ flex: 1, overflowY: 'auto' }}>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/clientes" element={<Clientes />} />
+            <Route path="/produtos" element={<Produtos />} />
+            <Route path="/orcamentos" element={<Orcamentos />} />
+            <Route path="/ordens" element={<OrdensServico />} />
+            <Route path="/nfe" element={<Nfe />} />
+          </Routes>
+        </main>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      </div>
+    </Router>
+  );
 }
 
-export default App
+// Estilização padrão dos botões do menu
+const menuStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+  color: '#cbd5e1',
+  textDecoration: 'none',
+  padding: '12px',
+  borderRadius: '6px',
+  fontWeight: '500',
+  transition: 'all 0.2s',
+  cursor: 'pointer'
+};
