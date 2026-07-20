@@ -1,0 +1,170 @@
+/* style.css */
+:root {
+    --bg-color: #1a1a2e;
+    --card-bg: #162447;
+    --text-color: #ffffff;
+    --accent-color: #e43f5a;
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+header {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.turno-atual {
+    font-size: 1.2rem;
+    background-color: var(--accent-color);
+    padding: 8px 20px;
+    border-radius: 20px;
+    display: inline-block;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.container {
+    display: flex;
+    gap: 40px;
+    margin-top: 30px;
+    max-width: 1000px;
+    width: 90%;
+}
+
+/* Placar */
+.placar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 250px;
+}
+
+.card-grupo {
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    border: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.card-grupo.ativo {
+    border-color: #00fff0;
+    box-shadow: 0 0 15px rgba(0, 255, 240, 0.4);
+}
+
+.pontos {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 10px 0 0 0;
+}
+
+/* Tabuleiro */
+.tabuleiro-container {
+    flex-grow: 1;
+}
+
+.tabuleiro {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.celula {
+    aspect-ratio: 1;
+    background-color: #1f4068;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.celula:hover {
+    background-color: var(--accent-color);
+}
+
+/* Estilos das cores após serem reveladas */
+.celula.revelada.azul { background-color: #007bdc !important; color: white; }
+.celula.revelada.verde { background-color: #28a745 !important; color: white; }
+.celula.revelada.amarelo { background-color: #ffc107 !important; color: black; }
+.celula.revelada.vermelho { background-color: #dc3545 !important; color: white; }
+.celula.revelada.branco { background-color: #f8f9fa !important; color: black; }
+
+/* Modal / Pop-up de Perguntas */
+.modal {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.8);
+    display: none; /* Controlado dinamicamente via JavaScript */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-conteudo {
+    background-color: var(--card-bg);
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    border: 2px solid #00fff0;
+}
+
+.modal-conteudo h3 {
+    margin-top: 0;
+}
+
+.modal-conteudo input {
+    width: 80%;
+    padding: 10px;
+    margin: 20px 0;
+    border-radius: 6px;
+    border: 2px solid #1f4068;
+    background-color: var(--bg-color);
+    color: white;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.modal-conteudo input:focus {
+    outline: none;
+    border-color: #00fff0;
+}
+
+.botoes-modal {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.btn-enviar {
+    background-color: #28a745;
+    color: white;
+    padding: 10px 25px;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+
+.btn-enviar:hover {
+    background-color: #218838;
+}
