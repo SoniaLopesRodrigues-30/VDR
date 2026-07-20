@@ -25,13 +25,13 @@ interface NotaFiscal {
   cofins: number;
   valorLiquido: number;
   status: 'Autorizada' | 'Pendente' | 'Cancelada';
-  itens: ItemNota[];
-  // Novos campos adicionados:
+  itens: ItemNota[];  
   quantidadeVolumes?: string; 
   especieVolumes?: string;
+  pesoBruto?: string;
+  pesoLiquido?: string;
+  informacoesComplementares?: string; 
 }
-
-
 
 export default function Nfe() {
   const [busca, setBusca] = useState('');
@@ -49,11 +49,15 @@ export default function Nfe() {
   const [itemUnidade, setItemUnidade] = useState('UN');
   const [itemQuantidade, setItemQuantidade] = useState('');
   const [itemValorUnitario, setItemValorUnitario] = useState('');
+
+  // Estados para Dados de Transporte e Observações
   const [qtdVolumes, setQtdVolumes] = useState('');
-  const [especieVolumes, setEspecieVolumes] = useState('CX'); // Padrão Caixa
-
-
-
+  const [especieVolumes, setEspecieVolumes] = useState('CX');
+  const [pesoBruto, setPesoBruto] = useState('');
+  const [pesoLiquido, setPesoLiquido] = useState('');
+  const [infoComplementares, setInfoComplementares] = useState(
+    'DOCUMENTO EMITIDO POR ME OU EPP OPTANTE PELO SIMPLES NACIONAL. NAO GERA DIREITO A CREDITO FISCAL DE IPI.'
+  );
   // Histórico Inicial de Notas Fiscais
   const [notas, setNotas] = useState<NotaFiscal[]>([
     {
@@ -64,16 +68,22 @@ export default function Nfe() {
       documento: '12.345.678/0001-99',
       dataEmissao: '20/07/2026',
       valorBruto: 1000.00,
-      icms: 180.00,
-      pis: 16.50,
-      cofins: 76.00,
-      valorLiquido: 727.50,
+      icms: 0,
+      pis: 0,
+      cofins: 0,
+      valorLiquido: 1000.00,
       status: 'Autorizada',
       itens: [
         { id: '1', descricao: 'Notebook Corp Core i5', ncm: '8471.30.12', unidade: 'UN', quantidade: 1, valorUnitario: 1000.00, valorTotalItem: 1000.00 }
-      ]
+      ],
+      quantidadeVolumes: '1',
+      especieVolumes: 'CX',
+      pesoBruto: '1.500',
+      pesoLiquido: '1.200',
+      informacoesComplementares: 'DOCUMENTO EMITIDO POR ME OU EPP OPTANTE PELO SIMPLES NACIONAL. NAO GERA DIREITO A CREDITO FISCAL DE IPI.'
     }
   ]);
+
   // Adiciona um item temporariamente na lista da nota fiscal atual
   const handleAdicionarItemTabela = () => {
     if (!itemDescricao || !itemNcm || !itemQuantidade || !itemValorUnitario) {
@@ -110,11 +120,20 @@ export default function Nfe() {
   const calcIcms = 0;
   const calcPis = 0;
   const calcCofins = 0;
-  const valorLiquidoCalculado = valorBrutoCalculado; // O valor líquido é 100% o valor bruto
+  const valorLiquidoCalculado = valorBrutoCalculado;
 
   const handleEmitirNfe = (e: React.FormEvent) => {
     e.preventDefault();
-    // ... validações existentes ...
+
+    if (!clienteSelecionado || !docCliente) {
+      alert('Por favor, preencha os dados do cliente.');
+      return;
+    }
+
+    if (itensAdicionados.length === 0) {
+      alert('Adicione pelo menos 1 produto para emitir a nota fiscal.');
+      return;
+    }
 
     const proximoNumero = String(notas.length + 4125).padStart(6, '0');
     
@@ -132,9 +151,11 @@ export default function Nfe() {
       valorLiquido: valorLiquidoCalculado,
       status: 'Autorizada',
       itens: itensAdicionados,
-      // Passando os volumes para a nota gerada:
       quantidadeVolumes: qtdVolumes || '0',
-      especieVolumes: especieVolumes
+      especieVolumes: especieVolumes,
+      pesoBruto: pesoBruto ? parseFloat(pesoBruto).toFixed(3) : '0.000',
+      pesoLiquido: pesoLiquido ? parseFloat(pesoLiquido).toFixed(3) : '0.000',
+      informacoesComplementares: infoComplementares
     };
 
     setNotas([novaNota, ...notas]);
@@ -146,8 +167,11 @@ export default function Nfe() {
     setDocCliente('');
     setNaturezaOperacao('Venda de Mercadoria');
     setItensAdicionados([]);
-    setQtdVolumes(''); // Limpa volumes
-    setEspecieVolumes('CX'); // Reseta espécie
+    setQtdVolumes(''); 
+    setEspecieVolumes('CX'); 
+    setPesoBruto('');
+    setPesoLiquido('');
+    setInfoComplementares('DOCUMENTO EMITIDO POR ME OU EPP OPTANTE PELO SIMPLES NACIONAL. NAO GERA DIREITO A CREDITO FISCAL DE IPI.');
     setModalAberto(false);
   };
 
@@ -162,7 +186,6 @@ export default function Nfe() {
     if (status === 'Pendente') return { bg: '#fef3c7', text: '#b45309', icon: <AlertTriangle size={14} /> };
     return { bg: '#fee2e2', text: '#b91c1c', icon: <XCircle size={14} /> };
   };
-
   return (
     <div className="nfe-container">
       
@@ -190,7 +213,6 @@ export default function Nfe() {
       </div>
 
       {/* TABELA DE LISTAGEM */}
-             {/* TABELA DE LISTAGEM */}
       <div className="table-wrapper">
         <table className="main-table">
           <thead>
@@ -200,11 +222,9 @@ export default function Nfe() {
               <th>Data de Emissão</th>
               <th>Valor Total da Nota</th>
               <th>Status SEFAZ</th>
-              <th style={{ textAlign: 'center' }}>Ações</th>
+              <th className="th-center">Ações</th>
             </tr>
           </thead>
-
-          {/* TABELA DE LISTAGEM */}
           <tbody>
             {notasFiltradas.map((nota) => {
               const estilo = getStatusStyle(nota.status);
@@ -213,22 +233,34 @@ export default function Nfe() {
                   <td className="td-numero">
                     {nota.numero}
                     <span className="sublabel-serie">Série: {nota.serie}</span>
-                    {/* Exibição dos volumes na linha da tabela */}
                     {nota.quantidadeVolumes && (
-                      <span style={{ fontSize: '11px', color: '#0284c7', marginTop: '2px', fontWeight: '500' }}>
-                        Vol: {nota.quantidadeVolumes} ({nota.especieVolumes})
-                      </span>
+                      <div className="td-transport-group">
+                        <span className="td-vol-label">
+                          Vol: {nota.quantidadeVolumes} ({nota.especieVolumes})
+                        </span>
+                        {nota.pesoBruto && (
+                          <span className="td-peso-label">
+                            P. Bruto: {nota.pesoBruto} kg | P. Líq: {nota.pesoLiquido} kg
+                          </span>
+                        )}
+                      </div>
                     )}
                   </td>
 
                   <td className="td-cliente">
-                    {nota.cliente}
+                    <span className="cliente-nome">{nota.cliente}</span>
                     <span className="sublabel-doc">{nota.documento}</span>
+                    {nota.informacoesComplementares && (
+                      <div className="td-observacao">
+                        <strong>Obs:</strong> {nota.informacoesComplementares}
+                      </div>
+                    )}
                   </td>
-                  <td className="td-data" style={{ color: '#475569' }}>
+
+                  <td className="td-data">
                     {nota.dataEmissao}
                   </td>
-                  <td className="td-liquido" style={{ fontWeight: '600' }}>
+                  <td className="td-liquido-total">
                     {nota.valorLiquido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </td>
                   <td>
@@ -246,9 +278,6 @@ export default function Nfe() {
           </tbody>
         </table>
       </div>
-
-
-
       {/* MODAL DE EMISSÃO COM SEÇÃO DE PRODUTOS */}
       {modalAberto && (
         <div className="modal-overlay">
@@ -263,9 +292,9 @@ export default function Nfe() {
 
             <form onSubmit={handleEmitirNfe} className="form-layout">
               
-                            {/* DADOS DO CLIENTE */}
+              {/* DADOS DO CLIENTE */}
               <div className="form-row">
-                <div className="form-group" style={{ flex: '1 1 150px' }}>
+                <div className="form-group fg-natureza">
                   <label className="form-label">Natureza da Operação</label>
                   <select value={naturezaOperacao} onChange={e => setNaturezaOperacao(e.target.value)} className="input-field">
                     <option value="Venda de Mercadoria">Venda de Mercadoria</option>
@@ -273,24 +302,24 @@ export default function Nfe() {
                     <option value="Remessa para Conserto">Remessa para Conserto</option>
                   </select>
                 </div>
-                <div className="form-group" style={{ flex: '2 1 240px' }}>
+                <div className="form-group fg-destinatario">
                   <label className="form-label">Destinatário *</label>
                   <input type="text" required value={clienteSelecionado} onChange={e => setClienteSelecionado(e.target.value)} placeholder="Razão Social ou Nome" className="input-field" />
                 </div>
-                <div className="form-group" style={{ flex: '1 1 160px' }}>
+                <div className="form-group fg-documento">
                   <label className="form-label">CPF / CNPJ *</label>
                   <input type="text" required value={docCliente} onChange={e => setDocCliente(e.target.value)} placeholder="00.000.000/0001-00" className="input-field" />
                 </div>
               </div>
 
-              {/* NOVA LINHA: DADOS DE TRANSPORTES / VOLUMES */}
-              <div className="form-row" style={{ marginTop: '-4px' }}>
-                <div className="form-group" style={{ flex: '1 1 120px' }}>
+              {/* LINHA: DADOS DE TRANSPORTES / VOLUMES E PESOS */}
+              <div className="form-row mt-negative">
+                <div className="form-group fg-vol-qtd">
                   <label className="form-label">Qtd. Volumes</label>
                   <input type="number" min="0" value={qtdVolumes} onChange={e => setQtdVolumes(e.target.value)} placeholder="Ex: 2" className="input-field" />
                 </div>
-                <div className="form-group" style={{ flex: '1 1 140px' }}>
-                  <label className="form-label">Espécie dos Volumes</label>
+                <div className="form-group fg-vol-esp">
+                  <label className="form-label">Espécie Volumes</label>
                   <select value={especieVolumes} onChange={e => setEspecieVolumes(e.target.value)} className="input-field">
                     <option value="CX">CX (Caixa)</option>
                     <option value="PC">PC (Pacote)</option>
@@ -299,8 +328,14 @@ export default function Nfe() {
                     <option value="VOL">VOL (Volume)</option>
                   </select>
                 </div>
-                {/* Espaço vazio para manter o alinhamento visual */}
-                <div style={{ flex: '2 1 200px' }}></div>
+                <div className="form-group fg-peso">
+                  <label className="form-label">Peso Bruto (KG)</label>
+                  <input type="number" min="0" step="0.001" value={pesoBruto} onChange={e => setPesoBruto(e.target.value)} placeholder="0,000" className="input-field" />
+                </div>
+                <div className="form-group fg-peso">
+                  <label className="form-label">Peso Líquido (KG)</label>
+                  <input type="number" min="0" step="0.001" value={pesoLiquido} onChange={e => setPesoLiquido(e.target.value)} placeholder="0,000" className="input-field" />
+                </div>
               </div>
 
               {/* SEÇÃO ADICIONAR PRODUTOS */}
@@ -309,14 +344,14 @@ export default function Nfe() {
                   <Package size={16} /> Adicionar Itens à Nota
                 </span>
                 
-                <div className="form-row" style={{ marginBottom: '10px', gap: '10px' }}>
-                  <div className="form-group" style={{ flex: '2 1 200px' }}>
+                <div className="form-row mb-items gap-items">
+                  <div className="form-group fg-prod-desc">
                     <input type="text" value={itemDescricao} onChange={e => setItemDescricao(e.target.value)} placeholder="Descrição do Produto" className="input-field" />
                   </div>
-                  <div className="form-group" style={{ flex: '1 1 100px' }}>
+                  <div className="form-group fg-prod-ncm">
                     <input type="text" value={itemNcm} onChange={e => setItemNcm(e.target.value)} placeholder="NCM (Ex: 8471)" className="input-field" />
                   </div>
-                  <div className="form-group" style={{ flex: '0 0 70px' }}>
+                  <div className="form-group fg-prod-un">
                     <select value={itemUnidade} onChange={e => setItemUnidade(e.target.value)} className="input-field">
                       <option value="UN">UN</option>
                       <option value="KG">KG</option>
@@ -324,13 +359,13 @@ export default function Nfe() {
                       <option value="CX">CX</option>
                     </select>
                   </div>
-                  <div className="form-group" style={{ flex: '1 1 70px' }}>
+                  <div className="form-group fg-prod-qtd">
                     <input type="number" min="1" value={itemQuantidade} onChange={e => setItemQuantidade(e.target.value)} placeholder="Qtd" className="input-field" />
                   </div>
-                  <div className="form-group" style={{ flex: '1 1 90px' }}>
+                  <div className="form-group fg-prod-val">
                     <input type="number" step="0.01" value={itemValorUnitario} onChange={e => setItemValorUnitario(e.target.value)} placeholder="R$ Unit." className="input-field" />
                   </div>
-                  <div style={{ flex: '0 0 42px' }}>
+                  <div className="fg-btn-add">
                     <button type="button" onClick={handleAdicionarItemTabela} className="btn-add-item">
                       <Plus size={18} />
                     </button>
@@ -354,11 +389,11 @@ export default function Nfe() {
                     <tbody>
                       {itensAdicionados.map((item) => (
                         <tr key={item.id}>
-                          <td style={{ fontWeight: '500' }}>{item.descricao} <span style={{ color: '#64748b', fontSize: '10px' }}>({item.unidade})</span></td>
-                          <td style={{ fontFamily: 'monospace' }}>{item.ncm}</td>
+                          <td className="td-internal-desc">{item.descricao} <span className="td-internal-un">({item.unidade})</span></td>
+                          <td className="td-internal-ncm">{item.ncm}</td>
                           <td>{item.quantidade} x R$ {item.valorUnitario.toFixed(2)}</td>
-                          <td style={{ fontWeight: '600' }}>R$ {item.valorTotalItem.toFixed(2)}</td>
-                          <td style={{ textAlign: 'center' }}>
+                          <td className="td-internal-subtotal">R$ {item.valorTotalItem.toFixed(2)}</td>
+                          <td className="th-center">
                             <button type="button" onClick={() => handleRemoverItemTabela(item.id)} className="btn-remove-item"><Trash2 size={14} /></button>
                           </td>
                         </tr>
@@ -368,24 +403,35 @@ export default function Nfe() {
                 </div>
               )}
            
-             {/* TOTAIS E REGIME TRIBUTÁRIO */}
-                {valorBrutoCalculado > 0 && (
-                  <div className="tax-panel">
-                    <div className="tax-row-products">
-                      <span>Total dos Produtos:</span>
-                      <span style={{ fontWeight: '700' }}>{valorBrutoCalculado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                    </div>
-                    <div className="tax-row-estimate">
-                      <span>Impostos Incidentes:</span>
-                      <span style={{ color: '#64748b', fontWeight: '500' }}>R$ 0,00 (Simples Nacional)</span>
-                    </div>
-                    <div className="tax-row-total">
-                      <span>Valor Total da Nota:</span>
-                      <span style={{ color: '#16a34a' }}>{valorLiquidoCalculado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                    </div>
+              {/* TOTAIS E REGIME TRIBUTÁRIO */}
+              {valorBrutoCalculado > 0 && (
+                <div className="tax-panel">
+                  <div className="tax-row-products">
+                    <span>Total dos Produtos:</span>
+                    <span className="weight-bold">{valorBrutoCalculado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                   </div>
-                )}
+                  <div className="tax-row-estimate">
+                    <span>Impostos Incidentes:</span>
+                    <span className="tax-free-badge">R$ 0,00 (Simples Nacional)</span>
+                  </div>
+                  <div className="tax-row-total">
+                    <span>Valor Total da Nota:</span>
+                    <span className="tax-total-value">{valorLiquidoCalculado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                  </div>
+                </div>
+              )}
 
+              {/* CAMPO DE INFORMAÇÕES COMPLEMENTARES */}
+              <div className="form-group fg-full-width mt-info">
+                <label className="form-label">Informações Complementares / Observações Fiscais</label>
+                <textarea 
+                  rows={3}
+                  value={infoComplementares} 
+                  onChange={e => setInfoComplementares(e.target.value)} 
+                  placeholder="Instruções adicionais, decretos estaduais..." 
+                  className="input-field textarea-field"
+                />
+              </div>
 
               {/* BOTÕES DE AÇÃO */}
               <div className="modal-footer">

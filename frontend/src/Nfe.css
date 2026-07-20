@@ -51,7 +51,6 @@
   margin: 0;
 }
 
-/* Barra de Busca */
 .search-container {
   display: flex;
   align-items: center;
@@ -96,7 +95,6 @@
   background-color: var(--primary-hover);
 }
 
-/* Botoes de Ação da Tabela (Icones) */
 .btn-icon-gray, .btn-icon-blue {
   background: transparent;
   border: 1px solid var(--border);
@@ -152,6 +150,10 @@
   background-color: #f8fafc;
 }
 
+.th-center {
+  text-align: center;
+}
+
 /* Detalhes de Células Complexas */
 .td-numero, .td-cliente {
   display: flex;
@@ -159,16 +161,23 @@
   gap: 2px;
 }
 
-.td-numero { font-weight: 600; }
+.td-numero { 
+  font-weight: 600; 
+}
+
 .sublabel-serie, .sublabel-doc {
   font-size: 11px;
   color: var(--text-muted);
   font-weight: 400;
 }
 
-.td-bruto, .td-liquido { font-weight: 500; }
-.td-icms { color: #475569; }
-.td-pis-cofins { font-size: 12px; color: var(--text-muted); }
+.td-data {
+  color: #475569;
+}
+
+.td-liquido-total {
+  font-weight: 600;
+}
 
 .td-acoes {
   display: flex;
@@ -176,7 +185,45 @@
   justify-content: center;
 }
 
-/* Badges de Status (SEFAZ) */
+/* Grupos de Transporte e Pesos na Tabela */
+.td-transport-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 4px;
+}
+
+.td-vol-label {
+  font-size: 11px;
+  color: #0284c7;
+  font-weight: 500;
+}
+
+.td-peso-label {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Observações e Clientes */
+.cliente-nome {
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.td-observacao {
+  font-size: 11px;
+  color: #475569;
+  background-color: #f1f5f9;
+  border-left: 3px solid var(--primary);
+  padding: 6px 10px;
+  border-radius: 4px;
+  margin-top: 6px;
+  max-width: 380px;
+  line-height: 1.4;
+  box-sizing: border-box;
+  word-break: break-word;
+}
+
 .badge-status {
   display: inline-flex;
   align-items: center;
@@ -189,7 +236,7 @@
 }
 
 /* ==========================================================================
-   ESTRUTURA DO MODAL (POPUP)
+   ESTRUTURA DO MODAL (POPUP) E FORMULÁRIOS
    ========================================================================== */
 .modal-overlay {
   position: fixed;
@@ -243,7 +290,6 @@
   margin: 0 0 20px 0;
 }
 
-/* FORMULÁRIO */
 .form-layout {
   display: flex;
   flex-direction: column;
@@ -286,8 +332,37 @@
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
+/* Classes Modificadoras do Formulário (Layout de Colunas Grid/Flex) */
+.mt-negative { margin-top: -4px; }
+.mb-items { margin-bottom: 10px; }
+.gap-items { gap: 10px; }
+.mt-info { margin-top: 10px; }
+
+.fg-natureza { flex: 1 1 150px; }
+.fg-destinatario { flex: 2 1 240px; }
+.fg-documento { flex: 1 1 160px; }
+.fg-vol-qtd { flex: 1 1 110px; }
+.fg-vol-esp { flex: 1 1 120px; }
+.fg-peso { flex: 1 1 120px; }
+
+.fg-prod-desc { flex: 2 1 200px; }
+.fg-prod-ncm { flex: 1 1 100px; }
+.fg-prod-un { flex: 0 0 70px; }
+.fg-prod-qtd { flex: 1 1 70px; }
+.fg-prod-val { flex: 1 1 90px; }
+.fg-btn-add { flex: 0 0 42px; }
+.fg-full-width { width: 100%; }
+
+.textarea-field {
+  resize: vertical;
+  font-family: sans-serif;
+  font-size: 13px;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+
 /* ==========================================================================
-   SEÇÃO INTERNA: ADICIONAR PRODUTOS (DENTRO DO MODAL)
+   SEÇÕES INTERNAS E TABELAS DO FORMULÁRIO
    ========================================================================== */
 .section-divider {
   border-top: 1px dashed var(--border);
@@ -323,7 +398,6 @@
   color: #fff;
 }
 
-/* Tabela Interna de Itens adicionados à nota */
 .internal-table-wrapper {
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -351,6 +425,11 @@
   background-color: var(--surface);
 }
 
+.td-internal-desc { font-weight: 500; }
+.td-internal-un { color: #64748b; font-size: 10px; }
+.td-internal-ncm { font-family: monospace; }
+.td-internal-subtotal { font-weight: 600; }
+
 .btn-remove-item {
   background: transparent;
   border: none;
@@ -362,7 +441,7 @@
 }
 .btn-remove-item:hover { background-color: #fef2f2; }
 
-/* Painel de Impostos e Somatórios */
+/* Painel de Somatórios */
 .tax-panel {
   background-color: #f8fafc;
   border: 1px solid var(--border);
@@ -380,6 +459,10 @@
   align-items: center;
 }
 
+.weight-bold { font-weight: 700; }
+.tax-free-badge { color: #64748b; font-weight: 500; }
+.tax-total-value { color: #16a34a; }
+
 .tax-row-total {
   border-top: 1px solid var(--border);
   padding-top: 8px;
@@ -388,39 +471,30 @@
   font-weight: 700;
 }
 
-/* ==========================================================================
-   RODAPÉ DO MODAL (BOTÕES FINAIS)
-   ========================================================================== */
+/* Rodapé do Modal */
 .modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid   var(--border);
   padding-top: 16px;
-  margin-top: 8px;
+  margin-top: 8px;}
+
+.btn-cancel {background-color: #fff;
+    border: 1px solid var(--border);
+    color: #475569;padding: 10px 16px;
+    border-radius: var(--radius);
+    font-size: 14px;font-weight: 500;cursor: pointer;
 }
 
-.btn-cancel {
-  background-color: #fff;
-  border: 1px solid var(--border);
-  color: #475569;
-  padding: 10px 16px;
-  border-radius: var(--radius);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.btn-cancel:hover { background-color: #f1f5f9; color: var(--text-main); }
-
-.btn-transmit {
-  background-color: var(--success);
-  border: none;
-  color: #fff;
-  padding: 10px 20px;
-  border-radius: var(--radius);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
+.btn-cancel:hover { background-color: #f1f5f9; 
+    color: var(--text-main);
+ }
+ .btn-transmit {background-color: var(--success);
+    border: none;color: #fff;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    font-size: 14px;font-weight: 600;
+    cursor: pointer;transition: background-color 0.2s;
 }
 .btn-transmit:hover { background-color: #15803d; }
