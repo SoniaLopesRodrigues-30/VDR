@@ -27,6 +27,215 @@ interface NotaFiscal {
   status: 'Autorizada' | 'Pendente' | 'Cancelada';
   itens: ItemNota[];
 }
+export default function Nfe() {
+  const [busca, setBusca] = useState('');
+  const [modalAberto, setModalAberto] = useState(false);
+
+  // Estados do Formulário de Emissão
+  const [clienteSelecionado, setClienteSelecionado] = useState('');
+  const [docCliente, setDocCliente] = useState('');
+  const [naturezaOperacao, setNaturezaOperacao] = useState('Venda de Mercadoria');
+  
+  // Estados para Adicionar Itens Dinamicamente
+  const [itensAdicionados, setItensAdicionados] = useState<ItemNota[]>([]);
+  const [itemDescricao, setItemDescricao] = useState('');
+  const [itemNcm, setItemNcm] = useState('');
+  const [itemUnidade, setItemUnidade] = useState('UN');
+  const [itemQuantidade, setItemQuantidade] = useState('');
+  const [itemValorUnitario, setItemValorUnitario] = useState('');
+
+  // Histórico Inicial de Notas Fiscais
+  const [notas, setNotas] = useState<NotaFiscal[]>([
+    {
+      id: 1,
+      numero: '000.004.125',
+      serie: '001',
+      cliente: 'Tech Soluções Ltda',
+      documento: '12.345.678/0001-99',
+      dataEmissao: '20/07/2026',
+      valorBruto: 1000.00,
+      icms: 180.00,
+      pis: 16.50,
+      cofins: 76.00,
+      valorLiquido: 727.50,
+      status: 'Autorizada',
+      itens: [
+        { id: '1', descricao: 'Notebook Corp Core i5', ncm: '8471.30.12', unidade: 'UN', quantidade: 1, valorUnitario: 1000.00, valorTotalItem: 1000.00 }
+      ]
+    }
+  ]);
+  // Adiciona um item temporariamente na lista da nota fiscal atual
+  const handleAdicionarItemTabela = () => {
+    if (!itemDescricao || !itemNcm || !itemQuantidade || !itemValorUnitario) {
+      alert('Preencha todos os dados do produto para adicioná-lo à nota.');
+      return;
+    }
+    const qtd = parseFloat(itemQuantidade);
+    const vUnit = parseFloat(itemValorUnitario);
+    
+    const novoItem: ItemNota = {
+      id: Date.now().toString(),
+      descricao: itemDescricao,
+      ncm: itemNcm,
+      unidade: itemUnidade,
+      quantidade: qtd,
+      valorUnitario: vUnit,
+      valorTotalItem: qtd * vUnit
+    };
+
+    setItensAdicionados([...itensAdicionados, novoItem]);
+    setItemDescricao('');
+    setItemNcm('');
+    setItemUnidade('UN');
+    setItemQuantidade('');
+    setItemValorUnitario('');
+  };
+
+  const handleRemoverItemTabela = (id: string) => {
+    setItensAdicionados(itensAdicionados.filter(item => item.id !== id));
+  };
+
+  // Lógica de Somatórios e Impostos
+  const valorBrutoCalculado = itensAdicionados.reduce((soma, item) => soma + item.valorTotalItem, 0);
+  const calcIcms = valorBrutoCalculado * 0.18;
+  const calcPis = valorBrutoCalculado * 0.0165;
+  const calcCofins = valorBrutoCalculado * 0.076;
+  const valorLiquidoCalculado = valorBrutoCalculado - (calcIcms + calcPis + calcCofins);
+
+  const handleEmitirNfe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clienteSelecionado || !docCliente) {
+      alert('Por favor, preencha os dados do cliente.');
+      return;
+    }
+    if (itensAdicionados.length === 0) {
+      alert('Adicione pelo menos 1 produto para emitir a nota fiscal.');
+      return;
+    }
+
+    const proximoNumero = String(notas.length + 4125).padStart(6, '0');
+    
+    const novaNota: NotaFiscal = {
+      id: Date.now(),
+      numero: `000.${proximoNumero.slice(0, 3)}.${proximoNumero.slice(3)}`,
+      serie: '001',
+      cliente: clienteSelecionado,
+      documento: docCliente,
+      dataEmissao: new Date().toLocaleDateString('pt-BR'),
+      valorBruto: valorBrutoCalculado,
+      icms: calcIcms,
+      pis: calcPis,
+      cofins: calcCofins,
+      valorLiquido: valorLiquidoCalculado,
+      status: 'Autorizada',
+      itens: itensAdicionados
+    };
+
+    setNotas([novaNota, ...notas]);
+    fecharModal();
+  };
+
+  const fecharModal = () => {
+    setClienteSelecionado('');
+    setDocCliente('');
+    setNaturezaOperacao('Venda de Mercadoria');
+    setItensAdicionados([]);
+    setModalAberto(false);
+  };
+
+  const notasFiltradas = notas.filter(nota =>
+    nota.cliente.toLowerCase().includes(busca.toLowerCase()) ||
+    nota.numero.includes(busca) ||
+    nota.documento.includes(busca)
+  );
+
+  const getStatusStyle = (status: NotaFiscal['status']) => {
+    if (status === 'Autorizada') return { bg: '#dcfce7', text: '#15803d', icon: <CheckCircle size={14} /> };
+    if (status === 'Pendente') return { bg: '#fef3c7', text: '#b45309', icon: <AlertTriangle size={14} /> };
+    return { bg: '#fee2e2', text: '#b91c1c', icon: <XCircle size={14} /> };
+  };
+
+  return (
+    <div className="nfe-container">
+      
+      {/* CABEÇALHO */}
+      <div className="nfe-header">
+        <div>
+          <h1 className="nfe-title">Notas Fiscais (NF-e)</h1>
+          <p className="nfe-subtitle">Emissão completa com discriminação de produtos, NCM e impostos detalhados.</p>
+        </div>
+        <button onClick={() => setModalAberto(true)} className="btn-emitir">
+          <Plus size={18} /> Emitir Nova NF-e
+        </button>
+      </div>
+
+      {/* FILTRO DE BUSCA */}
+      <div className="search-container">
+        <Search size={18} color="#94a3b8" />
+        <input 
+          type="text" 
+          placeholder="Buscar por Nº da nota, cliente ou CPF/CNPJ..." 
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          className="search-input"
+        />
+      </div>
+
+      {/* TABELA DE LISTAGEM */}
+      <div className="table-wrapper">
+        <table className="main-table">
+          <thead>
+            <tr>
+              <th>Número / Destinatário</th>
+              <th>Valor Bruto</th>
+              <th>ICMS (18%)</th>
+              <th>PIS / COFINS</th>
+              <th>Valor Líquido</th>
+              <th>Status SEFAZ</th>
+              <th style={{ textAlign: 'center' }}>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {notasFiltradas.map((nota) => {
+              const estilo = getStatusStyle(nota.status);
+              return (
+                <tr key={nota.id}>
+                  <td className="td-numero">
+                    {nota.numero}
+                    <span className="sublabel-serie">Série: {nota.serie}</span>
+                  </td>
+                  <td className="td-cliente">
+                    {nota.cliente}
+                    <span className="sublabel-doc">{nota.documento}</span>
+                  </td>
+                  <td className="td-bruto">
+                    {nota.valorBruto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </td>
+                  <td className="td-icms">
+                    {nota.icms.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </td>
+                  <td className="td-pis-cofins">
+                    <div>PIS: {nota.pis.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>
+                    <div style={{ marginTop: '2px' }}>COF: {nota.cofins.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>
+                  </td>
+                  <td className="td-liquido">
+                    {nota.valorLiquido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </td>
+                  <td>
+                    <span className="badge-status" style={{ backgroundColor: estilo.bg, color: estilo.text }}>
+                      {estilo.icon} {nota.status}
+                    </span>
+                  </td>
+                  <td className="td-acoes">
+                    <button type="button" title="Visualizar XML / DANFE" className="btn-icon-gray"><FileText size={16} /></button>
+                    <button type="button" title="Baixar PDF" className="btn-icon-blue"><Download size={16} /></button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       {/* MODAL DE EMISSÃO COM SEÇÃO DE PRODUTOS */}
       {modalAberto && (
         <div className="modal-overlay">
