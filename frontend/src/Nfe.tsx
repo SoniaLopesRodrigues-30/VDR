@@ -1,37 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Search, FileText, Download, AlertTriangle, CheckCircle, XCircle, X, Trash2, Package } from 'lucide-react';
 import './Nfe.css'; 
-
-interface ItemNota {
-  id: string;
-  descricao: string;
-  ncm: string;
-  unidade: string;
-  quantidade: number;
-  valorUnitario: number;
-  valorTotalItem: number;
-}
-
-interface NotaFiscal {
-  id: number;
-  numero: string;
-  serie: string;
-  cliente: string;
-  documento: string;
-  dataEmissao: string;
-  valorBruto: number;
-  icms: number;
-  pis: number;
-  cofins: number;
-  valorLiquido: number;
-  status: 'Autorizada' | 'Pendente' | 'Cancelada';
-  itens: ItemNota[];  
-  quantidadeVolumes?: string; 
-  especieVolumes?: string;
-  pesoBruto?: string;
-  pesoLiquido?: string;
-  informacoesComplementares?: string; 
-}
+import { baixarXmlNfe, imprimirPdfNfe } from './nfeUtils';
 
 export default function Nfe() {
   const [busca, setBusca] = useState('');
@@ -68,9 +38,6 @@ export default function Nfe() {
       documento: '12.345.678/0001-99',
       dataEmissao: '20/07/2026',
       valorBruto: 1000.00,
-      icms: 0,
-      pis: 0,
-      cofins: 0,
       valorLiquido: 1000.00,
       status: 'Autorizada',
       itens: [
@@ -115,11 +82,8 @@ export default function Nfe() {
     setItensAdicionados(itensAdicionados.filter(item => item.id !== id));
   };
 
-  // Lógica de Somatórios e Impostos (Simples Nacional - Sem destaque de impostos)
+  // Lógica de Somatórios (Simples Nacional - Sem destaque de impostos)
   const valorBrutoCalculado = itensAdicionados.reduce((soma, item) => soma + item.valorTotalItem, 0);
-  const calcIcms = 0;
-  const calcPis = 0;
-  const calcCofins = 0;
   const valorLiquidoCalculado = valorBrutoCalculado;
 
   const handleEmitirNfe = (e: React.FormEvent) => {
@@ -145,9 +109,6 @@ export default function Nfe() {
       documento: docCliente,
       dataEmissao: new Date().toLocaleDateString('pt-BR'),
       valorBruto: valorBrutoCalculado,
-      icms: calcIcms,
-      pis: calcPis,
-      cofins: calcCofins,
       valorLiquido: valorLiquidoCalculado,
       status: 'Autorizada',
       itens: itensAdicionados,
@@ -269,8 +230,22 @@ export default function Nfe() {
                     </span>
                   </td>
                   <td className="td-acoes">
-                    <button type="button" title="Visualizar XML / DANFE" className="btn-icon-gray"><FileText size={16} /></button>
-                    <button type="button" title="Baixar PDF" className="btn-icon-blue"><Download size={16} /></button>
+                    <button 
+                      type="button" 
+                      title="Visualizar XML / DANFE" 
+                      className="btn-icon-gray"
+                      onClick={() => baixarXmlNfe(nota)}
+                    >
+                      <FileText size={16} />
+                    </button>
+                    <button 
+                      type="button" 
+                      title="Baixar PDF" 
+                      className="btn-icon-blue"
+                      onClick={() => imprimirPdfNfe(nota)}
+                    >
+                      <Download size={16} />
+                    </button>
                   </td>
                 </tr>
               );
