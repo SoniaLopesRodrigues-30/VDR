@@ -1,0 +1,399 @@
+/* Classes Gerais da Tela de NF-e */
+.nfe-container {
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.nfe-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.nfe-title {
+  font-size: 28px;
+  font-weight: bold;
+  color: #0f172a;
+  margin: 0;
+}
+
+.nfe-subtitle {
+  color: #64748b;
+  margin-top: 4px;
+  margin: 0;
+}
+
+.btn-emitir {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #38bdf8;
+  color: #0f172a;
+  border: none;
+  padding: 10px 18px;
+  borderRadius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Barra de Busca */
+.search-container {
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 20px;
+  max-width: 400px;
+  gap: 8px;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+}
+
+/* Tabelas */
+.table-wrapper {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.main-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.main-table th {
+  padding: 16px;
+  color: #475569;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.main-table tr {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.td-numero {
+  padding: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  font-family: monospace;
+}
+
+.sublabel-serie {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: normal;
+  margin-top: 2px;
+}
+
+.td-cliente {
+  padding: 16px;
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.sublabel-doc {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: normal;
+  font-family: monospace;
+  margin-top: 2px;
+}
+
+.td-data {
+  padding: 16px;
+  color: #334155;
+}
+
+.td-bruto {
+  padding: 16px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.td-icms {
+  padding: 16px;
+  color: #b91c1c;
+  font-weight: 500;
+}
+
+.td-pis-cofins {
+  padding: 16px;
+  color: #ca8a04;
+  font-size: 11px;
+}
+
+.td-liquido {
+  padding: 16px;
+  color: #16a34a;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.badge-status {
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.td-acoes {
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding-top: 24px;
+}
+
+.btn-icon-gray {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.btn-icon-blue {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #0284c7;
+}
+
+/* Modal e Janela Flutuante */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background-color: #fff;
+  width: 100%;
+  max-width: 650px;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.btn-close-modal {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.modal-subtitle {
+  color: #64748b;
+  font-size: 14px;
+  margin: 0 0 20px 0;
+}
+
+.form-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+}
+
+/* Inputs Padrões */
+.input-field {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Seção de Adicionar Itens */
+.section-divider {
+  border-top: 1px solid #f1f5f9;
+  margin-top: 4px;
+  padding-top: 16px;
+}
+
+.section-subtitle {
+  font-size: 13px;
+  font-weight: bold;
+  color: #64748b;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.btn-add-item {
+  background-color: #0f172a;
+  color: #fff;
+  border: none;
+  width: 100%;
+  height: 38px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tabela Interna de Produtos no Modal */
+.internal-table-wrapper {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #f8fafc;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.internal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+
+.internal-table th {
+  padding: 8px;
+  color: #475569;
+  background-color: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.internal-table tr {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.internal-table td {
+  padding: 8px;
+}
+
+.btn-remove-item {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+}
+
+/* Painel de Impostos */
+.tax-panel {
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tax-row-products {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #1e3a8a;
+}
+
+.tax-row-estimate {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #475569;
+}
+
+.tax-row-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: bold;
+  color: #1e3a8a;
+  border-top: 1px solid #bfdbfe;
+  padding-top: 6px;
+  margin-top: 2px;
+}
+
+/* Botões do Rodapé do Modal */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 4px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 16px;
+}
+
+.btn-cancel {
+  background-color: #fff;
+  border: 1px solid #cbd5e1;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #475569;
+}
+
+.btn-transmit {
+  background-color: #38bdf8;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #0f172a;
+}

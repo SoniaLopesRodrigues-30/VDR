@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Search, FileText, Download, AlertTriangle, CheckCircle, XCircle, X, Trash2, Package } from 'lucide-react';
-import './Nfe.css'; // Importação do arquivo de estilos que você acabou de criar!
+import './Nfe.css'; 
 
 interface ItemNota {
   id: string;
@@ -16,9 +16,15 @@ interface NotaFiscal {
   id: number;
   numero: string;
   serie: string;
+  naturezaOperacao: string;
+  cfop: string;
+  destinoOperacao: string;
+  finalidadeEmissao: string;
   cliente: string;
   documento: string;
   dataEmissao: string;
+  dataSaida: string;
+  horaSaida: string;
   valorBruto: number;
   icms: number;
   pis: number;
@@ -27,14 +33,21 @@ interface NotaFiscal {
   status: 'Autorizada' | 'Pendente' | 'Cancelada';
   itens: ItemNota[];
 }
+
 export default function Nfe() {
   const [busca, setBusca] = useState('');
   const [modalAberto, setModalAberto] = useState(false);
 
   // Estados do Formulário de Emissão
+  const [naturezaOperacao, setNaturezaOperacao] = useState('Venda de Mercadoria');
+  const [cfop, setCfop] = useState('');
+  const [destinoOperacao, setDestinoOperacao] = useState('1'); // 1 = Interna, 2 = Interestadual, 3 = Exterior
+  const [finalidadeEmissao, setFinalidadeEmissao] = useState('1'); // 1 = Normal, 2 = Complementar, 3 = Ajuste, 4 = Devolução
   const [clienteSelecionado, setClienteSelecionado] = useState('');
   const [docCliente, setDocCliente] = useState('');
-  const [naturezaOperacao, setNaturezaOperacao] = useState('Venda de Mercadoria');
+  const [dataEmissao, setDataEmissao] = useState(new Date().toISOString().split('T')[0]);
+  const [dataSaida, setDataSaida] = useState(new Date().toISOString().split('T')[0]);
+  const [horaSaida, setHoraSaida] = useState(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
   
   // Estados para Adicionar Itens Dinamicamente
   const [itensAdicionados, setItensAdicionados] = useState<ItemNota[]>([]);
@@ -43,16 +56,21 @@ export default function Nfe() {
   const [itemUnidade, setItemUnidade] = useState('UN');
   const [itemQuantidade, setItemQuantidade] = useState('');
   const [itemValorUnitario, setItemValorUnitario] = useState('');
-
   // Histórico Inicial de Notas Fiscais
   const [notas, setNotas] = useState<NotaFiscal[]>([
     {
       id: 1,
       numero: '000.004.125',
       serie: '001',
+      naturezaOperacao: 'Venda de Mercadoria',
+      cfop: '5.102',
+      destinoOperacao: '1',
+      finalidadeEmissao: '1',
       cliente: 'Tech Soluções Ltda',
       documento: '12.345.678/0001-99',
-      dataEmissao: '20/07/2026',
+      dataEmissao: '2026-07-20',
+      dataSaida: '2026-07-20',
+      horaSaida: '14:30',
       valorBruto: 1000.00,
       icms: 180.00,
       pis: 16.50,
@@ -64,6 +82,7 @@ export default function Nfe() {
       ]
     }
   ]);
+
   // Adiciona um item temporariamente na lista da nota fiscal atual
   const handleAdicionarItemTabela = () => {
     if (!itemDescricao || !itemNcm || !itemQuantidade || !itemValorUnitario) {
@@ -101,11 +120,10 @@ export default function Nfe() {
   const calcPis = valorBrutoCalculado * 0.0165;
   const calcCofins = valorBrutoCalculado * 0.076;
   const valorLiquidoCalculado = valorBrutoCalculado - (calcIcms + calcPis + calcCofins);
-
   const handleEmitirNfe = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clienteSelecionado || !docCliente) {
-      alert('Por favor, preencha os dados do cliente.');
+    if (!clienteSelecionado || !docCliente || !cfop) {
+      alert('Por favor, preencha todos os dados obrigatórios (*).');
       return;
     }
     if (itensAdicionados.length === 0) {
@@ -119,9 +137,15 @@ export default function Nfe() {
       id: Date.now(),
       numero: `000.${proximoNumero.slice(0, 3)}.${proximoNumero.slice(3)}`,
       serie: '001',
+      naturezaOperacao,
+      cfop,
+      destinoOperacao,
+      finalidadeEmissao,
       cliente: clienteSelecionado,
       documento: docCliente,
-      dataEmissao: new Date().toLocaleDateString('pt-BR'),
+      dataEmissao: String(dataEmissao),
+      dataSaida: String(dataSaida),
+      horaSaida,
       valorBruto: valorBrutoCalculado,
       icms: calcIcms,
       pis: calcPis,
@@ -139,6 +163,12 @@ export default function Nfe() {
     setClienteSelecionado('');
     setDocCliente('');
     setNaturezaOperacao('Venda de Mercadoria');
+    setCfop('');
+    setDestinoOperacao('1');
+    setFinalidadeEmissao('1');
+    setDataEmissao(new Date().toISOString().split('T'));
+    setDataSaida(new Date().toISOString().split('T'));
+    setHoraSaida(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
     setItensAdicionados([]);
     setModalAberto(false);
   };
@@ -155,6 +185,13 @@ export default function Nfe() {
     return { bg: '#fee2e2', text: '#b91c1c', icon: <XCircle size={14} /> };
   };
 
+  // Formata datas de YYYY-MM-DD para DD/MM/YYYY na listagem visual
+  const formatarDataBR = (dataUS: string) => {
+    if (!dataUS) return '';
+    const partes = dataUS.split('-');
+    if (partes.length !== 3) return dataUS;
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+  };
   return (
     <div className="nfe-container">
       
@@ -187,6 +224,7 @@ export default function Nfe() {
           <thead>
             <tr>
               <th>Número / Destinatário</th>
+              <th>Emissão / Saída</th>
               <th>Valor Bruto</th>
               <th>ICMS (18%)</th>
               <th>PIS / COFINS</th>
@@ -201,12 +239,16 @@ export default function Nfe() {
               return (
                 <tr key={nota.id}>
                   <td className="td-numero">
-                    {nota.numero}
-                    <span className="sublabel-serie">Série: {nota.serie}</span>
+                    <div style={{ fontWeight: '600' }}>{nota.numero}</div>
+                    <span className="sublabel-serie">Série: {nota.serie} | CFOP: {nota.cfop}</span>
                   </td>
                   <td className="td-cliente">
-                    {nota.cliente}
+                    <div style={{ fontWeight: '500' }}>{nota.cliente}</div>
                     <span className="sublabel-doc">{nota.documento}</span>
+                  </td>
+                  <td>
+                    <div>{formatarDataBR(nota.dataEmissao)}</div>
+                    <span className="sublabel-doc" style={{ fontSize: '11px' }}>Saída: {formatarDataBR(nota.dataSaida)} {nota.horaSaida}</span>
                   </td>
                   <td className="td-bruto">
                     {nota.valorBruto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -239,34 +281,76 @@ export default function Nfe() {
       {/* MODAL DE EMISSÃO COM SEÇÃO DE PRODUTOS */}
       {modalAberto && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content" style={{ maxWidth: '850px' }}>
             
             <button type="button" onClick={fecharModal} className="btn-close-modal">
               <X size={20} />
             </button>
 
             <h3 className="modal-title">Emitir Nota Fiscal (NF-e)</h3>
-            <p className="modal-subtitle">Preencha os dados e adicione os itens da nota eletrônica.</p>
+            <p className="modal-subtitle">Preencha os parâmetros fiscais, dados do cliente e os itens.</p>
 
             <form onSubmit={handleEmitirNfe} className="form-layout">
               
-              {/* DADOS DO CLIENTE */}
+              {/* BLOCO 1: DADOS FISCAIS DA NOTA */}
               <div className="form-row">
-                <div className="form-group" style={{ flex: '1 1 150px' }}>
+                <div className="form-group" style={{ flex: '2 1 200px' }}>
                   <label className="form-label">Natureza da Operação</label>
                   <select value={naturezaOperacao} onChange={e => setNaturezaOperacao(e.target.value)} className="input-field">
                     <option value="Venda de Mercadoria">Venda de Mercadoria</option>
                     <option value="Prestação de Serviço">Prestação de Serviço</option>
                     <option value="Remessa para Conserto">Remessa para Conserto</option>
+                    <option value="Devolução de Mercadoria">Devolução de Mercadoria</option>
                   </select>
                 </div>
-                <div className="form-group" style={{ flex: '2 1 240px' }}>
+                <div className="form-group" style={{ flex: '1 1 100px' }}>
+                  <label className="form-label">CFOP *</label>
+                  <input type="text" required value={cfop} onChange={e => setCfop(e.target.value)} placeholder="Ex: 5.102" className="input-field" />
+                </div>
+                <div className="form-group" style={{ flex: '1 1 140px' }}>
+                  <label className="form-label">Destino da Operação</label>
+                  <select value={destinoOperacao} onChange={e => setDestinoOperacao(e.target.value)} className="input-field">
+                    <option value="1">1 - Operação Interna</option>
+                    <option value="2">2 - Operação Interestadual</option>
+                    <option value="3">3 - Operação com Exterior</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ flex: '1 1 140px' }}>
+                  <label className="form-label">Finalidade de Emissão</label>
+                  <select value={finalidadeEmissao} onChange={e => setFinalidadeEmissao(e.target.value)} className="input-field">
+                    <option value="1">1 - NF-e Normal</option>
+                    <option value="2">2 - NF-e Complementar</option>
+                    <option value="3">3 - NF-e de Ajuste</option>
+                    <option value="4">4 - Devolução de Mercadoria</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* BLOCO 2: DADOS DO DESTINATÁRIO */}
+              <div className="form-row">
+                <div className="form-group" style={{ flex: '2 1 300px' }}>
                   <label className="form-label">Destinatário *</label>
                   <input type="text" required value={clienteSelecionado} onChange={e => setClienteSelecionado(e.target.value)} placeholder="Razão Social ou Nome" className="input-field" />
                 </div>
-                <div className="form-group" style={{ flex: '1 1 160px' }}>
+                <div className="form-group" style={{ flex: '1 1 180px' }}>
                   <label className="form-label">CPF / CNPJ *</label>
                   <input type="text" required value={docCliente} onChange={e => setDocCliente(e.target.value)} placeholder="00.000.000/0001-00" className="input-field" />
+                </div>
+              </div>
+
+              {/* BLOCO 3: DATAS E HORÁRIOS */}
+              <div className="form-row">
+                <div className="form-group" style={{ flex: '1 1 150px' }}>
+                  <label className="form-label">Data de Emissão</label>
+                  <input type="date" value={dataEmissao} onChange={e => setDataEmissao(e.target.value)} className="input-field" />
+                </div>
+                <div className="form-group" style={{ flex: '1 1 150px' }}>
+                  <label className="form-label">Data de Saída / Entrada</label>
+                  <input type="date" value={dataSaida} onChange={e => setDataSaida(e.target.value)} className="input-field" />
+                </div>
+                <div className="form-group" style={{ flex: '1 1 120px' }}>
+                  <label className="form-label">Hora da Saída</label>
+                  <input type="time" value={horaSaida} onChange={e => setHoraSaida(e.target.value)} className="input-field" />
                 </div>
               </div>
 
