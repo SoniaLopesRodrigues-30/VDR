@@ -32,7 +32,7 @@ const sefazConfig: Config = {
   },
   certificado: {
     pfx: certificadoBuffer,
-    senha: '03183009',
+    senha: 'vdr183009',
   },
   ambiente: '2', // 1 = Produção | 2 = Homologação (Testes)
   uf: 'RS', // Estado padrão de emissão atualizado para RS
