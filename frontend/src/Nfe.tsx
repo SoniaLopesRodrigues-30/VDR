@@ -3,13 +3,14 @@ import { Plus, Search, FileText, Download, CheckCircle, AlertTriangle, XCircle }
 import './Nfe.css'; 
 import { baixarXmlNfe, imprimirPdfNfe } from './nfeUtils';
 
-// IMPORTAÇÃO CORRETA E LIMPA AQUI:
+// IMPORTAÇÃO CORRETA E LIMPA:
 import { ModalEmissaoNfe, type NotaFiscal } from './ModalEmissaoNfe';
 
 export default function Nfe() {
-
   const [busca, setBusca] = useState('');
   const [modalAberto, setModalAberto] = useState(false);
+  
+  // CORREÇÃO: Injetado todas as novas propriedades fiscais obrigatórias da interface no mock inicial
   const [notas, setNotas] = useState<NotaFiscal[]>([
     {
       id: 1,
@@ -28,10 +29,37 @@ export default function Nfe() {
       especieVolumes: 'CX',
       pesoBruto: '1.500',
       pesoLiquido: '1.200',
-      informacoesComplementares: 'DOCUMENTO EMITIDO POR ME OU EPP OPTANTE PELO SIMPLES NACIONAL. NAO GERA DIREITO A CREDITO FISCAL DE IPI.'
+      informacoesComplementares: 'DOCUMENTO EMITIDO POR ME OU EPP OPTANTE PELO SIMPLES NACIONAL. NAO GERA DIREITO A CREDITO FISCAL DE IPI.',
+      
+      // --- CAMPOS ATUALIZADOS PARA NÃO DAR ERRO DE COMPILAÇÃO ---
+      tipoOperacao: '1 - Saída',
+      destinoOperacao: '1 - Operação Interna (Estadual)',
+      finalidadeEmissao: '1 - NF-e Normal',
+      dataSaida: '20/07/2026',
+      horaSaida: '14:30',
+
+      pagamento: {
+        formaPagamento: 'Pix',
+        meioPagamento: 'Pagamento À Vista'
+      },
+      transporte: {
+        modalidadeFrete: '0 - Contratação por conta do Remetente (CIF)',
+        transportadorNome: 'TransLog Transportes S.A.',
+        transportadorCnpjCpf: '98.765.432/0001-11',
+        placaVeiculo: 'ABC1D23'
+      },
+      cobranca: {
+        fatura: { 
+          numero: 'FAT-4125', 
+          valorOriginal: 1000.00, 
+          valorLiquido: 1000.00 
+        },
+        duplicatas: [
+          { numero: 'DUP-4125/01', vencimento: '20/08/2026', valor: 1000.00 }
+        ]
+      }
     }
   ]);
-
   // Filtro otimizado com useMemo (evita reprocessar ao abrir/fechar modal)
   const notasFiltradas = useMemo(() => {
     return notas.filter(nota =>
@@ -51,6 +79,7 @@ export default function Nfe() {
     setNotas([novaNota, ...notas]);
     setModalAberto(false);
   };
+
   return (
     <div className="nfe-container">
       {/* CABEÇALHO */}
@@ -97,28 +126,44 @@ export default function Nfe() {
                   <td className="td-numero">
                     {nota.numero}
                     <span className="sublabel-serie">Série: {nota.serie}</span>
-                    {nota.quantidadeVolumes && (
-                      <div className="td-transport-group">
-                        <span className="td-vol-label">
-                          Vol: {nota.quantidadeVolumes} ({nota.especieVolumes})
-                        </span>
-                        {nota.pesoBruto && (
-                          <span className="td-peso-label">
-                            P. Bruto: {nota.pesoBruto} kg | P. Líq: {nota.pesoLiquido} kg
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    
+                    {/* Exibição das Informações de Transporte coletadas */}
+                    <div className="td-transport-group" style={{ marginTop: '6px', fontSize: '11px', color: '#64748b', lineHeight: '1.4' }}>
+                      <div><strong>Frete:</strong> {nota.transporte.modalidadeFrete ? nota.transporte.modalidadeFrete.split(' - ')[0] : '9'}</div>
+                      {nota.transporte.transportadorNome && (
+                        /* CORREÇÃO: Mudado nota.placaVeiculo para nota.transporte.placaVeiculo */
+                        <div><strong>Transp:</strong> {nota.transporte.transportadorNome} {nota.transporte.placaVeiculo && `(${nota.transporte.placaVeiculo})`}</div>
+                      )}
+                    </div>
                   </td>
+                  
                   <td className="td-cliente">
                     <span className="cliente-nome">{nota.cliente}</span>
                     <span className="sublabel-doc">{nota.documento}</span>
+                    
+                    {/* Exibição das Informações de Pagamento, Faturas e Duplicatas */}
+                    <div className="td-finance-group" style={{ marginTop: '6px', fontSize: '11px', color: '#475569', lineHeight: '1.4' }}>
+                      <div>
+                        <span style={{ marginRight: '12px' }}><strong>Forma:</strong> {nota.pagamento.formaPagamento}</span>
+                        {nota.cobranca?.fatura && (
+                          <span><strong>Fatura:</strong> {nota.cobranca.fatura.numero}</span>
+                        )}
+                      </div>
+                      {/* CORREÇÃO: Acessado nota.cobranca.duplicatas[0] corretamente */}
+                      {nota.cobranca?.duplicatas && nota.cobranca.duplicatas.length > 0 && (
+                        <div style={{ color: '#2563eb', marginTop: '2px' }}>
+                          <strong>Venc. Duplicata:</strong> {nota.cobranca.duplicatas[0].vencimento} ({nota.cobranca.duplicatas[0].valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})
+                        </div>
+                      )}
+                    </div>
+
                     {nota.informacoesComplementares && (
-                      <div className="td-observacao">
+                      <div className="td-observacao" style={{ marginTop: '4px' }}>
                         <strong>Obs:</strong> {nota.informacoesComplementares}
                       </div>
                     )}
                   </td>
+                  
                   <td className="td-data">{nota.dataEmissao}</td>
                   <td className="td-liquido-total">
                     {nota.valorLiquido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
