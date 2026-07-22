@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2, Package, Truck, CreditCard, FileText, DollarSign, User } from 'lucide-react';
-import './ModalEmissaoNfe.css'; // IMPORTAÇÃO AUTOMÁTICA DO SEU ARQUIVO DE ESTILOS
+import './ModalEmissaoNfe.css';
 
-// DECLARAÇÃO DIRETA DOS TIPOS AQUI
+// DECLARAÇÃO DOS TIPOS FISCAIS OBRIGATÓRIOS
 export interface ItemNota {
   id: string;
   descricao: string;
@@ -60,6 +60,15 @@ export interface NotaFiscal {
     transportadorCnpjCpf?: string;
     placaVeiculo?: string;
   };
+  enderecoDestinatario: {
+    logradouro: string;
+    numero: string;
+    bairro: string;
+    codigoMunicipio: string;
+    municipio: string;
+    uf: string;
+    cep: string;
+  };
   cobranca?: {
     fatura: FaturaNota;
     duplicatas: DuplicataNota[];
@@ -73,21 +82,28 @@ interface ModalEmissaoProps {
 }
 
 export function ModalEmissaoNfe({ onClose, onEmitir, proximoNumeroSequencial }: ModalEmissaoProps) {
-  // Estados do Formulário de Emissão
+  // Estados de Identificação do Cliente
   const [clienteSelecionado, setClienteSelecionado] = useState('');
   const [docCliente, setDocCliente] = useState('');
   const [naturezaOperacao, setNaturezaOperacao] = useState('Venda de Mercadoria');
   
-  // Estados fiscais de emissão
+  // NOVOS ESTADOS ADICIONADOS: Dados de Endereço Dinâmicos do Destinatário (Caxias do Sul - RS)
+  const [logradouroDest, setLogradouroDest] = useState('');
+  const [numeroDest, setNumeroDest] = useState('');
+  const [bairroDest, setBairroDest] = useState('');
+  const [municipioDest, setMunicipioDest] = useState('Caxias do Sul');
+  const [ufDest, setUfDest] = useState('RS');
+  const [cepDest, setCepDest] = useState('95042-000');
+  const [codMunicipioDest, setCodMunicipioDest] = useState('4305108'); // Código IBGE exato de Caxias do Sul
+  
+  // Estados fiscais de emissão (com correção estrita para inputs do tipo "date")
   const [tipoOperacao, setTipoOperacao] = useState<NotaFiscal['tipoOperacao']>('1 - Saída');
   const [destinoOperacao, setDestinoOperacao] = useState<NotaFiscal['destinoOperacao']>('1 - Operação Interna (Estadual)');
   const [finalidadeEmissao, setFinalidadeEmissao] = useState<NotaFiscal['finalidadeEmissao']>('1 - NF-e Normal');
-  const [dataEmissao, setDataEmissao] = useState(new Date().toISOString().split('T'));
-  const [dataSaida, setDataSaida] = useState(new Date().toISOString().split('T'));
+  const [dataEmissao, setDataEmissao] = useState(new Date().toISOString().split('T')[0]);
+  const [dataSaida, setDataSaida] = useState(new Date().toISOString().split('T')[0]);
   const [horaSaida, setHoraSaida] = useState(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
-
-  // Estado para data de vencimento da fatura
-  const [dataVencimentoFatura, setDataVencimentoFatura] = useState(new Date().toISOString().split('T'));
+  const [dataVencimentoFatura, setDataVencimentoFatura] = useState(new Date().toISOString().split('T')[0]);
 
   // Estados para Adicionar Itens Dinamicamente
   const [itensAdicionados, setItensAdicionados] = useState<ItemNota[]>([]);
@@ -107,13 +123,12 @@ export function ModalEmissaoNfe({ onClose, onEmitir, proximoNumeroSequencial }: 
   );
 
   // Estados para Pagamento e Transporte
-  const [formaPagamento, setFormaPagamento] = useState<NotaFiscal['pagamento']['formaPagamento']>('Dinheiro');
-  const [meioPagamento, setMeioPagamento] = useState('01 - Dinheiro');
+  const [formaPagamento, setFormaPagamento] = useState<NotaFiscal['pagamento']['formaPagamento']>('Pix');
+  const [meioPagamento, setMeioPagamento] = useState('15 - Pix');
   const [modalidadeFrete, setModalidadeFrete] = useState<NotaFiscal['transporte']['modalidadeFrete']>('9 - Sem Ocorrência de Transporte');
   const [transportadorNome, setTransportadorNome] = useState('');
   const [transportadorCnpjCpf, setTransportadorCnpjCpf] = useState('');
   const [placaVeiculo, setPlacaVeiculo] = useState('');
-
   const handleAdicionarItemTabela = () => {
     if (!itemDescricao || !itemNcm || !itemQuantidade || !itemValorUnitario) {
       alert('Preencha todos os dados do produto para adicioná-lo à nota.');
@@ -172,10 +187,14 @@ export function ModalEmissaoNfe({ onClose, onEmitir, proximoNumeroSequencial }: 
       return;
     }
 
+    // CORREÇÃO DEFINITIVA DA DATA DO MODAL (Previne loops e duplicações)
     const formatarDataBR = (dataUS: string) => {
       if (!dataUS) return '';
+      if (dataUS.includes('/')) return dataUS; 
+      
       const parts = dataUS.split('-');
       if (parts.length !== 3) return dataUS;
+      
       const [ano, mes, dia] = parts;
       return `${dia}/${mes}/${ano}`;
     };
@@ -189,7 +208,7 @@ export function ModalEmissaoNfe({ onClose, onEmitir, proximoNumeroSequencial }: 
       dataEmissao: formatarDataBR(dataEmissao),
       valorBruto: valorBrutoCalculado,
       valorLiquido: valorLiquidoCalculado,
-      status: 'Autorizada',
+      status: 'Pendente',
       itens: itensAdicionados,
       quantidadeVolumes: qtdVolumes || '0',
       especieVolumes: especieVolumes,
@@ -212,6 +231,16 @@ export function ModalEmissaoNfe({ onClose, onEmitir, proximoNumeroSequencial }: 
         transportadorNome: modalidadeFrete !== '9 - Sem Ocorrência de Transporte' ? transportadorNome : undefined,
         transportadorCnpjCpf: modalidadeFrete !== '9 - Sem Ocorrência de Transporte' ? transportadorCnpjCpf : undefined,
         placaVeiculo: modalidadeFrete !== '9 - Sem Ocorrência de Transporte' ? placaVeiculo : undefined
+      },
+      // INTEGRAÇÃO DO ENDEREÇO COLETADO DINAMICAMENTE (Crucial para o Back-end)
+      enderecoDestinatario: {
+        logradouro: logradouroDest || 'Rua nao informada',
+        numero: numeroDest || 'SN',
+        bairro: bairroDest || 'Centro',
+        codigoMunicipio: codMunicipioDest,
+        municipio: municipioDest,
+        uf: ufDest,
+        cep: cepDest.replace(/\D/g, '')
       },
       cobranca: formaPagamento !== 'Sem Pagamento' ? {
         fatura: {
@@ -263,7 +292,6 @@ export function ModalEmissaoNfe({ onClose, onEmitir, proximoNumeroSequencial }: 
                 <select value={destinoOperacao} onChange={e => setDestinoOperacao(e.target.value as any)} className="input-field">
                   <option value="1 - Operação Interna (Estadual)">1 - Interna (No Estado)</option>
                   <option value="2 - Operação Interestadual">2 - Interestadual (Fora do Estado)</option>
-                  <option value="3 - Operação com Exterior">3 - Exterior</option>
                 </select>
               </div>
               <div className="form-group fg-documento">
@@ -296,12 +324,12 @@ export function ModalEmissaoNfe({ onClose, onEmitir, proximoNumeroSequencial }: 
               </div>
             </div>
           </fieldset>
-
-          {/* SEÇÃO 2: DADOS DE IDENTIFICAÇÃO DO DESTINATÁRIO */}
+          {/* SEÇÃO 2: DADOS DE IDENTIFICAÇÃO E ENDEREÇO DO DESTINATÁRIO */}
           <fieldset className="section-divider">
             <legend className="section-subtitle">
-              <User size={16} /> 2. Identificação do Cliente / Destinatário
+              <User size={16} /> 2. Identificação e Endereço do Cliente
             </legend>
+            
             <div className="form-row">
               <div className="form-group fg-destinatario">
                 <label className="form-label">Destinatário / Razão Social *</label>
@@ -310,6 +338,40 @@ export function ModalEmissaoNfe({ onClose, onEmitir, proximoNumeroSequencial }: 
               <div className="form-group fg-documento">
                 <label className="form-label">CPF / CNPJ *</label>
                 <input type="text" required value={docCliente} onChange={e => setDocCliente(e.target.value)} placeholder="00.000.000/0001-00" className="input-field" />
+              </div>
+            </div>
+
+            <div className="form-row mt-negative">
+              <div className="form-group fg-vol-qtd">
+                <label className="form-label">CEP *</label>
+                <input type="text" required value={cepDest} onChange={e => setCepDest(e.target.value)} placeholder="00000-000" className="input-field" />
+              </div>
+              <div className="form-group fg-destinatario">
+                <label className="form-label">Logradouro (Rua/Av) *</label>
+                <input type="text" required value={logradouroDest} onChange={e => setLogradouroDest(e.target.value)} placeholder="Ex: Av. Brasil" className="input-field" />
+              </div>
+              <div className="form-group fg-vol-qtd">
+                <label className="form-label">Número *</label>
+                <input type="text" required value={numeroDest} onChange={e => setNumeroDest(e.target.value)} placeholder="123" className="input-field" />
+              </div>
+            </div>
+
+            <div className="form-row mt-negative">
+              <div className="form-group fg-natureza">
+                <label className="form-label">Bairro *</label>
+                <input type="text" required value={bairroDest} onChange={e => setBairroDest(e.target.value)} placeholder="Bairro" className="input-field" />
+              </div>
+              <div className="form-group fg-natureza">
+                <label className="form-label">Município *</label>
+                <input type="text" required value={municipioDest} onChange={e => setMunicipioDest(e.target.value)} placeholder="Cidade" className="input-field" />
+              </div>
+              <div className="form-group fg-vol-esp">
+                <label className="form-label">Cód. IBGE Cidade *</label>
+                <input type="text" required value={codMunicipioDest} onChange={e => setCodMunicipioDest(e.target.value)} placeholder="Ex: 4305108" className="input-field" />
+              </div>
+              <div className="form-group fg-vol-qtd">
+                <label className="form-label">UF *</label>
+                <input type="text" required maxLength={2} value={ufDest} onChange={e => setUfDest(e.target.value.toUpperCase())} placeholder="RS" className="input-field" />
               </div>
             </div>
           </fieldset>
@@ -323,7 +385,7 @@ export function ModalEmissaoNfe({ onClose, onEmitir, proximoNumeroSequencial }: 
             <div className="form-row mb-items gap-items">
               <div className="form-group fg-prod-desc">
                 <label className="form-label">Descrição do Produto</label>
-                <input type="text" value={itemDescricao} onChange={e => setItemDescricao(e.target.value)} placeholder="Ex: Monitor LED 24 polegadas" className="input-field" />
+                <input type="text" value={itemDescricao} onChange={e => setItemDescricao(e.target.value)} placeholder="Ex: Monitor LED 24" className="input-field" />
               </div>
               <div className="form-group fg-prod-ncm">
                 <label className="form-label">NCM (Fiscal)</label>
@@ -340,14 +402,14 @@ export function ModalEmissaoNfe({ onClose, onEmitir, proximoNumeroSequencial }: 
               </div>
               <div className="form-group fg-prod-qtd">
                 <label className="form-label">Qtd.</label>
-                <input type="number" min="1" value={itemQuantidade} onChange={e => setItemQuantidade(e.target.value)} placeholder="0" className="input-field" />
+                <input type="number" value={itemQuantidade} onChange={e => setItemQuantidade(e.target.value)} placeholder="0" className="input-field" />
               </div>
               <div className="form-group fg-prod-val">
                 <label className="form-label">Valor Unit.</label>
                 <input type="number" step="0.01" value={itemValorUnitario} onChange={e => setItemValorUnitario(e.target.value)} placeholder="R$ 0,00" className="input-field" />
               </div>
               <div className="fg-btn-add">
-                <button type="button" onClick={handleAdicionarItemTabela} className="btn-add-item" title="Adicionar produto à lista">
+                <button type="button" onClick={handleAdicionarItemTabela} className="btn-add-item" title="Adicionar produto">
                   <Plus size={18} />
                 </button>
               </div>
@@ -450,8 +512,8 @@ export function ModalEmissaoNfe({ onClose, onEmitir, proximoNumeroSequencial }: 
               <div className="form-group fg-natureza">
                 <label className="form-label">Forma de Pagamento</label>
                 <select value={formaPagamento} onChange={e => setFormaPagamento(e.target.value as any)} className="input-field">
-                  <option value="Dinheiro">Dinheiro</option>
                   <option value="Pix">Pix</option>
+                  <option value="Dinheiro">Dinheiro</option>
                   <option value="Boleto">Boleto</option>
                   <option value="Cartão de Crédito">Cartão de Crédito</option>
                   <option value="Cartão de Débito">Cartão de Débito</option>

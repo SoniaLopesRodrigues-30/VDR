@@ -3,14 +3,14 @@ import { Plus, Search, FileText, Download, CheckCircle, AlertTriangle, XCircle }
 import './Nfe.css'; 
 import { baixarXmlNfe, imprimirPdfNfe } from './nfeUtils';
 
-// IMPORTAÇÃO CORRETA E LIMPA:
+// IMPORTAÇÃO CONECTADA AO FORMULÁRIO MODAL
 import { ModalEmissaoNfe, type NotaFiscal } from './ModalEmissaoNfe';
 
 export default function Nfe() {
   const [busca, setBusca] = useState('');
   const [modalAberto, setModalAberto] = useState(false);
   
-  // CORREÇÃO: Injetado todas as novas propriedades fiscais obrigatórias da interface no mock inicial
+  // Estado inicial contendo o histórico de notas fiscais emitidas
   const [notas, setNotas] = useState<NotaFiscal[]>([
     {
       id: 1,
@@ -31,7 +31,6 @@ export default function Nfe() {
       pesoLiquido: '1.200',
       informacoesComplementares: 'DOCUMENTO EMITIDO POR ME OU EPP OPTANTE PELO SIMPLES NACIONAL. NAO GERA DIREITO A CREDITO FISCAL DE IPI.',
       
-      // --- CAMPOS ATUALIZADOS PARA NÃO DAR ERRO DE COMPILAÇÃO ---
       tipoOperacao: '1 - Saída',
       destinoOperacao: '1 - Operação Interna (Estadual)',
       finalidadeEmissao: '1 - NF-e Normal',
@@ -48,6 +47,15 @@ export default function Nfe() {
         transportadorCnpjCpf: '98.765.432/0001-11',
         placaVeiculo: 'ABC1D23'
       },
+      enderecoDestinatario: {
+        logradouro: 'Av. Julio de Castilhos',
+        numero: '1400',
+        bairro: 'Centro',
+        codigoMunicipio: '4305108',
+        municipio: 'Caxias do Sul',
+        uf: 'RS',
+        cep: '95010000'
+      },
       cobranca: {
         fatura: { 
           numero: 'FAT-4125', 
@@ -60,7 +68,8 @@ export default function Nfe() {
       }
     }
   ]);
-  // Filtro otimizado com useMemo (evita reprocessar ao abrir/fechar modal)
+
+  // Filtro performático utilizando cache de memória
   const notasFiltradas = useMemo(() => {
     return notas.filter(nota =>
       nota.cliente.toLowerCase().includes(busca.toLowerCase()) ||
@@ -74,42 +83,105 @@ export default function Nfe() {
     if (status === 'Pendente') return { bg: '#fef3c7', text: '#b45309', icon: <AlertTriangle size={14} /> };
     return { bg: '#fee2e2', text: '#b91c1c', icon: <XCircle size={14} /> };
   };
-
-   const handleEmitirNota = async (novaNota: NotaFiscal) => {
-    // 1. Cria um estado temporário de 'Pendente' para dar feedback visual na tabela
+  const handleEmitirNota = async (novaNota: NotaFiscal) => {
+    // Coloca a nota na listagem com o feedback visual amarelo de processamento
     const notaEmProcessamento: NotaFiscal = {
       ...novaNota,
       status: 'Pendente'
     };
 
-    // Insere a nota pendente no topo da listagem e fecha o modal
     setNotas([notaEmProcessamento, ...notas]);
     setModalAberto(false);
 
     try {
-      // 2. Realiza o disparo HTTP real para o seu backend Node.js     
-      const response = await fetch('http://127.0.0', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json' // Adicione esta linha obrigatória
-  },
-  body: JSON.stringify(novaNota)
-});
-Use o código com cuidado.
-      const dadosRetorno = await response.json();
+      // Isola os dados de funções do React, evitando falhas de serialização no JSON.stringify
+      const dadosLimposParaEnvio = {
+        id: novaNota.id,
+        numero: novaNota.numero,
+        serie: novaNota.serie,
+        cliente: novaNota.cliente,
+        documento: novaNota.documento,
+        dataEmissao: novaNota.dataEmissao,
+        valorBruto: novaNota.valorBruto,
+        valorLiquido: novaNota.valorLiquido,
+        itens: novaNota.itens.map(item => ({
+          id: item.id,
+          descricao: item.descricao,
+          ncm: item.ncm,
+          unidade: item.unidade,
+          quantidade: item.quantidade,
+          valorUnitario: item.valorUnitario,
+          valorTotalItem: item.valorTotalItem
+        })),
+        quantidadeVolumes: novaNota.quantidadeVolumes,
+        especieVolumes: novaNota.especieVolumes,
+        pesoBruto: novaNota.pesoBruto,
+        pesoLiquido: novaNota.pesoLiquido,
+        informacoesComplementares: novaNota.informacoesComplementares,
+        tipoOperacao: novaNota.tipoOperacao,
+        destinoOperacao: novaNota.destinoOperacao,
+        finalidadeEmissao: novaNota.finalidadeEmissao,
+        dataSaida: novaNota.dataSaida,
+        horaSaida: novaNota.horaSaida,
+        pagamento: {
+          formaPagamento: novaNota.pagamento?.formaPagamento,
+          meioPagamento: novaNota.pagamento?.meioPagamento
+        },
+        transporte: {
+          modalidadeFrete: novaNota.transporte?.modalidadeFrete,
+          transportadorNome: novaNota.transporte?.transportadorNome,
+          transportadorCnpjCpf: novaNota.transporte?.transportadorCnpjCpf,
+          placaVeiculo: novaNota.transporte?.placaVeiculo
+        },
+        enderecoDestinatario: novaNota.enderecoDestinatario ? {
+          logradouro: novaNota.enderecoDestinatario.logradouro,
+          numero: novaNota.enderecoDestinatario.numero,
+          bairro: novaNota.enderecoDestinatario.bairro,
+          codigoMunicipio: novaNota.enderecoDestinatario.codigoMunicipio,
+          municipio: novaNota.enderecoDestinatario.municipio,
+          uf: novaNota.enderecoDestinatario.uf,
+          cep: novaNota.enderecoDestinatario.cep,
+        } : undefined,
+        cobranca: novaNota.cobranca ? {
+          fatura: {
+            numero: novaNota.cobranca.fatura.numero,
+            valorOriginal: novaNota.cobranca.fatura.valorOriginal,
+            valorLiquido: novaNota.cobranca.fatura.valorLiquido,
+            dataVencimento: novaNota.cobranca.fatura.dataVencimento
+          },
+          duplicatas: novaNota.cobranca.duplicatas.map(dup => ({
+            numero: dup.numero,
+            vencimento: dup.vencimento,
+            valor: dup.valor
+          }))
+        } : undefined
+      };
 
-      if (!response.ok || !dadosRetorno.sucesso) {
-        throw new Error(dadosRetorno.mensagem || 'Erro desconhecido na SEFAZ.');
+      console.log("[Front-end] Enviando payload estruturado:", dadosLimposParaEnvio);
+
+      // Dispara a requisição HTTP POST para a porta 5001 aberta com tratamento CORS
+      const response = await fetch('http://localhost:5001/v1/nfe', {       
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dadosLimposParaEnvio)
+      });
+
+      if (!response.ok) {
+        const erroServidor = await response.json().catch(() => ({ mensagem: 'Erro na resposta interna do servidor.' }));
+        throw new Error(erroServidor.mensagem || `Erro HTTP: ${response.status}`);
       }
 
-      // 3. SEFAZ APROVOU: Atualiza a linha com o status oficial e o protocolo recebido
+      const dadosRetorno = await response.json();
+
+      // Transmissão concluída com sucesso: Atualiza o card para verde (Autorizada)
       setNotas(notasAtuais =>
         notasAtuais.map(n =>
           n.id === novaNota.id
             ? {
                 ...n,
-                status: 'Autorizada', // Muda o badge para verde
+                status: 'Autorizada',
                 numero: dadosRetorno.numeroNota || n.numero,
                 informacoesComplementares: `${n.informacoesComplementares || ''} [Protocolo SEFAZ: ${dadosRetorno.protocolo}] [Chave: ${dadosRetorno.chaveAcesso}]`
               }
@@ -120,15 +192,15 @@ Use o código com cuidado.
       alert(`Sucesso! NF-e Nº ${dadosRetorno.numeroNota || novaNota.numero} foi transmitida e AUTORIZADA pela SEFAZ.`);
 
     } catch (error: any) {
-      console.error('Falha na transmissão da nota:', error);
+      console.error('[Front-end] Falha detalhada na transmissão:', error);
       
-      // 4. SEFAZ REJEITOU OU BACKEND FALHOU: Atualiza para 'Cancelada' ou remove da lista
+      // Erro na transmissão: Altera o card para vermelho (Cancelada/Erro)
       setNotas(notasAtuais =>
         notasAtuais.map(n =>
           n.id === novaNota.id
             ? {
                 ...n,
-                status: 'Cancelada', // Altera para vermelho sinalizando o erro
+                status: 'Cancelada',
                 informacoesComplementares: `${n.informacoesComplementares || ''} [ERRO DE TRANSMISSÃO]: ${error.message}`
               }
             : n
@@ -138,10 +210,9 @@ Use o código com cuidado.
       alert(`Falha no envio: ${error.message}`);
     }
   };
-
   return (
     <div className="nfe-container">
-      {/* CABEÇALHO */}
+      {/* PAINEL SUPERIOR */}
       <div className="nfe-header">
         <div>
           <h1 className="nfe-title">Notas Fiscais (NF-e)</h1>
@@ -152,7 +223,7 @@ Use o código com cuidado.
         </button>
       </div>
 
-      {/* FILTRO DE BUSCA */}
+      {/* DISPOSITIVO DE PESQUISA */}
       <div className="search-container">
         <Search size={18} color="#94a3b8" />
         <input 
@@ -164,7 +235,7 @@ Use o código com cuidado.
         />
       </div>
 
-      {/* TABELA DE LISTAGEM */}
+      {/* GRADE DE RESULTADOS */}
       <div className="table-wrapper">
         <table className="main-table">
           <thead>
@@ -186,11 +257,9 @@ Use o código com cuidado.
                     {nota.numero}
                     <span className="sublabel-serie">Série: {nota.serie}</span>
                     
-                    {/* Exibição das Informações de Transporte coletadas */}
                     <div className="td-transport-group" style={{ marginTop: '6px', fontSize: '11px', color: '#64748b', lineHeight: '1.4' }}>
                       <div><strong>Frete:</strong> {nota.transporte.modalidadeFrete ? nota.transporte.modalidadeFrete.split(' - ')[0] : '9'}</div>
                       {nota.transporte.transportadorNome && (
-                        /* CORREÇÃO: Mudado nota.placaVeiculo para nota.transporte.placaVeiculo */
                         <div><strong>Transp:</strong> {nota.transporte.transportadorNome} {nota.transporte.placaVeiculo && `(${nota.transporte.placaVeiculo})`}</div>
                       )}
                     </div>
@@ -200,7 +269,6 @@ Use o código com cuidado.
                     <span className="cliente-nome">{nota.cliente}</span>
                     <span className="sublabel-doc">{nota.documento}</span>
                     
-                    {/* Exibição das Informações de Pagamento, Faturas e Duplicatas */}
                     <div className="td-finance-group" style={{ marginTop: '6px', fontSize: '11px', color: '#475569', lineHeight: '1.4' }}>
                       <div>
                         <span style={{ marginRight: '12px' }}><strong>Forma:</strong> {nota.pagamento.formaPagamento}</span>
@@ -208,7 +276,6 @@ Use o código com cuidado.
                           <span><strong>Fatura:</strong> {nota.cobranca.fatura.numero}</span>
                         )}
                       </div>
-                      {/* CORREÇÃO: Acessado nota.cobranca.duplicatas[0] corretamente */}
                       {nota.cobranca?.duplicatas && nota.cobranca.duplicatas.length > 0 && (
                         <div style={{ color: '#2563eb', marginTop: '2px' }}>
                           <strong>Venc. Duplicata:</strong> {nota.cobranca.duplicatas[0].vencimento} ({nota.cobranca.duplicatas[0].valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})
@@ -233,7 +300,7 @@ Use o código com cuidado.
                     </span>
                   </td>
                   <td className="td-acoes">
-                    <button type="button" title="Visualizar XML / DANFE" className="btn-icon-gray" onClick={() => baixarXmlNfe(nota)}>
+                    <button type="button" title="Visualizar XML" className="btn-icon-gray" onClick={() => baixarXmlNfe(nota)}>
                       <FileText size={16} />
                     </button>
                     <button type="button" title="Baixar PDF" className="btn-icon-blue" onClick={() => imprimirPdfNfe(nota)}>
@@ -247,7 +314,7 @@ Use o código com cuidado.
         </table>
       </div>
 
-      {/* MODAL ISOLADO */}
+      {/* DISPARADOR CONDICIONAL DO FORMULÁRIO */}
       {modalAberto && (
         <ModalEmissaoNfe 
           onClose={() => setModalAberto(false)} 

@@ -7,22 +7,21 @@ import { transmitirNfeSefaz } from './nfeService';
 dotenv.config();
 
 const app = express();
-const PORT = 5000;
 
+// ALTERAÇÃO CRÍTICA: Porta atualizada para 5001 devido ao conflito do sistema operacional
+const PORT = 5001;
 
+// Middleware essencial para ler os payloads em JSON enviados pelo React
+app.use(express.json());
 
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  
-  // Responde imediatamente à requisição de checagem do navegador (Preflight)
-  if (req.method === 'OPTIONS') {
-     res.sendStatus(200);
-     return;
-  }
-  next();
-});
+// CORREÇÃO CRÍTICA DO CORS: Substituição do bloco manual pela biblioteca oficial.
+// Isso resolve o erro "TypeError: Failed to fetch" limpando as requisições OPTIONS (Preflight) do navegador.
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With']
+}));
+
 /**
  * Rota POST que recebe a nota enviada pelo componente React
  */
@@ -48,7 +47,7 @@ app.post('/v1/nfe', async (req: Request, res: Response): Promise<void> => {
      * O retorno da biblioteca costuma conter o status da SEFAZ:
      * cStat === 100 significa "Autorizado o uso da NF-e" (Sucesso completo)
      */
-    if (respostaSefaz.cStat === 100) {
+    if (respostaSefaz && respostaSefaz.cStat === 100) {
        res.status(200).json({
         sucesso: true,
         status: 'Autorizada',
@@ -64,8 +63,8 @@ app.post('/v1/nfe', async (req: Request, res: Response): Promise<void> => {
        res.status(422).json({
         sucesso: false,
         status: 'Cancelada',
-        cStat: respostaSefaz.cStat,
-        mensagem: `Rejeição da SEFAZ: ${respostaSefaz.xMotivo}`
+        cStat: respostaSefaz ? respostaSefaz.cStat : 'Desconhecido',
+        mensagem: `Rejeição da SEFAZ: ${respostaSefaz ? respostaSefaz.xMotivo : 'Sem resposta do motor fiscal'}`
       });
        return;
     }
@@ -81,8 +80,8 @@ app.post('/v1/nfe', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-// Inicializa o servidor HTTP na porta definida
-app.listen(Number(PORT), '127.0.0.1', () => {
+// Inicialização com binding universal ('0.0.0.0') para aceitar tráfego de rede
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`===================================================`);
   console.log(` Emissor de NF-e Nativo Rodando de Verdade!`);
   console.log(` Endpoint de envio: http://localhost:${PORT}/v1/nfe`);
