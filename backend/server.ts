@@ -69,13 +69,15 @@ app.post('/v1/nfe', async (req: Request, res: Response): Promise<void> => {
        return;
     }
 
-  } catch (error: any) {
+   } catch (error: any) {
     console.error('[Backend] Erro crítico no processamento da NF-e:', error);
-     res.status(500).json({
+    res.status(500).json({
       sucesso: false,
-      mensagem: 'Falha interna no servidor ao tentar assinar ou transmitir a nota fiscal.',
-      detalhe: error.message
+      // MUDANÇA AQUI: Repassa o detalhe do erro real para o Front-end conseguir ler
+      mensagem: error.message || 'Falha interna no servidor ao tentar assinar ou transmitir a nota fiscal.',
+      detalhe: error.stack
     });
+
      return;
   }
 });
