@@ -75,9 +75,68 @@ export default function Nfe() {
     return { bg: '#fee2e2', text: '#b91c1c', icon: <XCircle size={14} /> };
   };
 
-  const handleEmitirNota = (novaNota: NotaFiscal) => {
-    setNotas([novaNota, ...notas]);
+   const handleEmitirNota = async (novaNota: NotaFiscal) => {
+    // 1. Cria um estado temporário de 'Pendente' para dar feedback visual na tabela
+    const notaEmProcessamento: NotaFiscal = {
+      ...novaNota,
+      status: 'Pendente'
+    };
+
+    // Insere a nota pendente no topo da listagem e fecha o modal
+    setNotas([notaEmProcessamento, ...notas]);
     setModalAberto(false);
+
+    try {
+      // 2. Realiza o disparo HTTP real para o seu backend Node.js     
+      const response = await fetch('http://127.0.0', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json' // Adicione esta linha obrigatória
+  },
+  body: JSON.stringify(novaNota)
+});
+Use o código com cuidado.
+      const dadosRetorno = await response.json();
+
+      if (!response.ok || !dadosRetorno.sucesso) {
+        throw new Error(dadosRetorno.mensagem || 'Erro desconhecido na SEFAZ.');
+      }
+
+      // 3. SEFAZ APROVOU: Atualiza a linha com o status oficial e o protocolo recebido
+      setNotas(notasAtuais =>
+        notasAtuais.map(n =>
+          n.id === novaNota.id
+            ? {
+                ...n,
+                status: 'Autorizada', // Muda o badge para verde
+                numero: dadosRetorno.numeroNota || n.numero,
+                informacoesComplementares: `${n.informacoesComplementares || ''} [Protocolo SEFAZ: ${dadosRetorno.protocolo}] [Chave: ${dadosRetorno.chaveAcesso}]`
+              }
+            : n
+        )
+      );
+
+      alert(`Sucesso! NF-e Nº ${dadosRetorno.numeroNota || novaNota.numero} foi transmitida e AUTORIZADA pela SEFAZ.`);
+
+    } catch (error: any) {
+      console.error('Falha na transmissão da nota:', error);
+      
+      // 4. SEFAZ REJEITOU OU BACKEND FALHOU: Atualiza para 'Cancelada' ou remove da lista
+      setNotas(notasAtuais =>
+        notasAtuais.map(n =>
+          n.id === novaNota.id
+            ? {
+                ...n,
+                status: 'Cancelada', // Altera para vermelho sinalizando o erro
+                informacoesComplementares: `${n.informacoesComplementares || ''} [ERRO DE TRANSMISSÃO]: ${error.message}`
+              }
+            : n
+        )
+      );
+
+      alert(`Falha no envio: ${error.message}`);
+    }
   };
 
   return (
