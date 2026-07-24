@@ -6,21 +6,21 @@ export function SeccaoDadosGerais({ state }: { state: any }) {
     <fieldset className="section-divider">
       <legend className="section-subtitle"><FileText size={16} /> 1. Dados Gerais da Emissão</legend>
       <div className="form-row">
-        <div className="form-group fg-natureza">
+        <div className="form-group">
           <label className="form-label">Tipo Op. (tpNF)</label>
           <select value={state.tipoOperacao} onChange={e => state.setTipoOperacao(e.target.value)} className="input-field">
             <option value="1 - Saída">1 - Saída</option>
             <option value="0 - Entrada">0 - Entrada</option>
           </select>
         </div>
-        <div className="form-group fg-destinatario">
+        <div className="form-group">
           <label className="form-label">Destino Operação (idDest)</label>
           <select value={state.destinoOperacao} onChange={e => state.setDestinoOperacao(e.target.value)} className="input-field">
             <option value="1 - Operação Interna (Estadual)">1 - Interna (No Estado)</option>
             <option value="2 - Operação Interestadual">2 - Interestadual (Fora do Estado)</option>
           </select>
         </div>
-        <div className="form-group fg-documento">
+        <div className="form-group">
           <label className="form-label">Finalidade (finNFe)</label>
           <select value={state.finalidadeEmissao} onChange={e => state.setFinalidadeEmissao(e.target.value)} className="input-field">
             <option value="1 - NF-e Normal">1 - Normal</option>
@@ -31,19 +31,19 @@ export function SeccaoDadosGerais({ state }: { state: any }) {
         </div>
       </div>
       <div className="form-row mt-negative">
-        <div className="form-group fg-natureza">
+        <div className="form-group">
           <label className="form-label">Natureza Operação</label>
           <input type="text" value={state.naturezaOperacao} onChange={e => state.setNaturezaOperacao(e.target.value)} className="input-field" placeholder="Ex: Venda de Mercadoria" />
         </div>
-        <div className="form-group fg-vol-esp">
+        <div className="form-group">
           <label className="form-label">Data Emissão</label>
           <input type="date" required value={state.dataEmissao} onChange={e => state.setDataEmissao(e.target.value)} className="input-field" />
         </div>
-        <div className="form-group fg-vol-esp">
+        <div className="form-group">
           <label className="form-label">Data Saída/Entrada</label>
           <input type="date" required value={state.dataSaida} onChange={e => state.setDataSaida(e.target.value)} className="input-field" />
         </div>
-        <div className="form-group fg-vol-qtd">
+        <div className="form-group">
           <label className="form-label">Hora Saída</label>
           <input type="text" required value={state.horaSaida} onChange={e => state.setHoraSaida(e.target.value)} placeholder="00:00" className="input-field" />
         </div>
