@@ -1,28 +1,59 @@
-// DadosGeraisFiscais.tsx
+// src/DadosGeraisFiscais.tsx
 import React from 'react';
 import { FileText, User } from 'lucide-react';
 
-interface DadosGeraisFiscaisProps {
+interface DadosGeraisProps {
   dadosFiscais: any;
   destinatario: any;
   updateDadosFiscais: (field: string, value: string) => void;
   updateDestinatario: (field: string, value: string) => void;
 }
 
-export function DadosGeraisFiscais({
-  dadosFiscais,
-  destinatario,
-  updateDadosFiscais,
-  updateDestinatario
-}: DadosGeraisFiscaisProps) {
+export const LISTA_CFOPS = [
+  { cfop: '5101', label: '5101 - Venda de produção do Estabelecimento (Dentro do Estado)' },
+  { cfop: '5102', label: '5102 - Venda de mercadoria adquirida de terceiros (Dentro do Estado)' },
+  { cfop: '6102', label: '6102 - Venda de mercadoria adquirida de terceiros (Fora do Estado)' },
+  { cfop: '5405', label: '5405 - Venda de mercadoria com substituição tributária (ST)' },
+  { cfop: '5117', label: '5117 - Venda de mercadoria originada de encomenda para entrega futura' },
+  { cfop: '5910', label: '5910 - Remessa em bonificação, doação ou brinde' },
+  { cfop: '6910', label: '6910 - Remessa em bonificação, doação ou brinde (Fora do Estado)' },
+  { cfop: '5202', label: '5202 - Devolução de compra para comercialização' },
+  { cfop: '6202', label: '6202 - Devolução de compra para comercialização (Fora do Estado)' },
+];
+
+export function DadosGeraisFiscais({ dadosFiscais, destinatario, updateDadosFiscais, updateDestinatario }: DadosGeraisProps) {
+  
+  // Função auxiliar para renderizar os inputs text/date de forma limpa e sem repetição de HTML
+  const renderInput = (label: string, value: string, cls: string, onChange: (v: string) => void, type = 'text', extra = {}) => (
+    <div className={`form-group ${cls}`}>
+      <label className="form-label">{label}</label>
+      <input type={type} required className="input-field" value={value || ''} onChange={e => onChange(e.target.value)} {...extra} />
+    </div>
+  );
+
   return (
     <>
-      {/* SEÇÃO 1: INFORMAÇÕES GERAIS FISCAIS */}
+      {/* 1. DADOS GERAIS DA EMISSÃO */}
       <fieldset className="section-divider">
-        <legend className="section-subtitle">
-          <FileText size={16} /> 1. Dados Gerais da Emissão
-        </legend>
+        <legend className="section-subtitle"><FileText size={16} /> 1. Dados Gerais da Emissão</legend>
+        
         <div className="form-row">
+          <div className="form-group fg-destinatario">
+            <label htmlFor="cfop-select" className="form-label">Operação Fiscal / CFOP</label>
+            <select
+              id="cfop-select"
+              className="input-field"
+              value={dadosFiscais.cfop || '5102'}
+              onChange={(e) => {
+                const item = LISTA_CFOPS.find(i => i.cfop === e.target.value);
+                updateDadosFiscais('cfop', e.target.value);
+                updateDestinatario('naturezaOperacao', item ? item.label.split(' - ')[1] : 'Venda de Mercadoria');
+              }}
+            >
+              {LISTA_CFOPS.map((op, idx) => <option key={`${op.cfop}-${idx}`} value={op.cfop}>{op.label}</option>)}
+            </select>
+          </div>
+
           <div className="form-group fg-natureza">
             <label className="form-label">Tipo Op. (tpNF)</label>
             <select value={dadosFiscais.tipoOperacao} onChange={e => updateDadosFiscais('tipoOperacao', e.target.value)} className="input-field">
@@ -30,6 +61,7 @@ export function DadosGeraisFiscais({
               <option value="0 - Entrada">0 - Entrada</option>
             </select>
           </div>
+
           <div className="form-group fg-destinatario">
             <label className="form-label">Destino Operação (idDest)</label>
             <select value={dadosFiscais.destinoOperacao} onChange={e => updateDadosFiscais('destinoOperacao', e.target.value)} className="input-field">
@@ -37,6 +69,7 @@ export function DadosGeraisFiscais({
               <option value="2 - Operação Interestadual">2 - Interestadual (Fora do Estado)</option>
             </select>
           </div>
+
           <div className="form-group fg-documento">
             <label className="form-label">Finalidade (finNFe)</label>
             <select value={dadosFiscais.finalidadeEmissao} onChange={e => updateDadosFiscais('finalidadeEmissao', e.target.value)} className="input-field">
@@ -49,73 +82,33 @@ export function DadosGeraisFiscais({
         </div>
 
         <div className="form-row mt-negative">
-          <div className="form-group fg-natureza">
-            <label className="form-label">Natureza Operação</label>
-            <input type="text" value={destinatario.naturezaOperacao} onChange={e => updateDestinatario('naturezaOperacao', e.target.value)} className="input-field" placeholder="Ex: Venda de Mercadoria" />
-          </div>
-          <div className="form-group fg-vol-esp">
-            <label className="form-label">Data Emissão</label>
-            <input type="date" required value={dadosFiscais.dataEmissao} onChange={e => updateDadosFiscais('dataEmissao', e.target.value)} className="input-field" />
-          </div>
-          <div className="form-group fg-vol-esp">
-            <label className="form-label">Data Saída/Entrada</label>
-            <input type="date" required value={dadosFiscais.dataSaida} onChange={e => updateDadosFiscais('dataSaida', e.target.value)} className="input-field" />
-          </div>
-          <div className="form-group fg-vol-qtd">
-            <label className="form-label">Hora Saída</label>
-            <input type="text" required value={dadosFiscais.horaSaida} onChange={e => updateDadosFiscais('horaSaida', e.target.value)} placeholder="00:00" className="input-field" />
-          </div>
+          {renderInput('Natureza Operação', destinatario.naturezaOperacao, 'fg-natureza', v => updateDestinatario('naturezaOperacao', v), 'text', { placeholder: 'Ex: Venda' })}
+          {renderInput('Data Emissão', dadosFiscais.dataEmissao, 'fg-vol-esp', v => updateDadosFiscais('dataEmissao', v), 'date')}
+          {renderInput('Data Saída/Entrada', dadosFiscais.dataSaida, 'fg-vol-esp', v => updateDadosFiscais('dataSaida', v), 'date')}
+          {renderInput('Hora Saída', dadosFiscais.horaSaida, 'fg-vol-qtd', v => updateDadosFiscais('horaSaida', v), 'text', { placeholder: '00:00' })}
         </div>
       </fieldset>
 
-      {/* SEÇÃO 2: DADOS DE IDENTIFICAÇÃO E ENDEREÇO DO DESTINATÁRIO */}
+      {/* 2. IDENTIFICAÇÃO E ENDEREÇO DO CLIENTE */}
       <fieldset className="section-divider">
-        <legend className="section-subtitle">
-          <User size={16} /> 2. Identificação e Endereço do Cliente
-        </legend>
+        <legend className="section-subtitle"><User size={16} /> 2. Identificação e Endereço do Cliente</legend>
+        
         <div className="form-row">
-          <div className="form-group fg-destinatario">
-            <label className="form-label">Destinatário / Razão Social *</label>
-            <input type="text" required value={destinatario.cliente} onChange={e => updateDestinatario('cliente', e.target.value)} placeholder="Nome completo ou Razão Social" className="input-field" />
-          </div>
-          <div className="form-group fg-documento">
-            <label className="form-label">CPF / CNPJ *</label>
-            <input type="text" required value={destinatario.documento} onChange={e => updateDestinatario('documento', e.target.value)} placeholder="00.000.000/0001-00" className="input-field" />
-          </div>
+          {renderInput('Destinatário / Razão Social *', destinatario.cliente, 'fg-destinatario', v => updateDestinatario('cliente', v), 'text', { placeholder: 'Nome ou Razão Social' })}
+          {renderInput('CPF / CNPJ *', destinatario.documento, 'fg-documento', v => updateDestinatario('documento', v), 'text', { placeholder: '00.000.000/0001-00' })}
         </div>
 
         <div className="form-row mt-negative">
-          <div className="form-group fg-vol-qtd">
-            <label className="form-label">CEP *</label>
-            <input type="text" required value={destinatario.cep} onChange={e => updateDestinatario('cep', e.target.value)} placeholder="00000-000" className="input-field" />
-          </div>
-          <div className="form-group fg-destinatario">
-            <label className="form-label">Logradouro (Rua/Av) *</label>
-            <input type="text" required value={destinatario.logradouro} onChange={e => updateDestinatario('logradouro', e.target.value)} placeholder="Ex: Av. Brasil" className="input-field" />
-          </div>
-          <div className="form-group fg-vol-qtd">
-            <label className="form-label">Número *</label>
-            <input type="text" required value={destinatario.numero} onChange={e => updateDestinatario('numero', e.target.value)} placeholder="123" className="input-field" />
-          </div>
+          {renderInput('CEP *', destinatario.cep, 'fg-vol-qtd', v => updateDestinatario('cep', v), 'text', { placeholder: '00000-000' })}
+          {renderInput('Logradouro (Rua/Av) *', destinatario.logradouro, 'fg-destinatario', v => updateDestinatario('logradouro', v), 'text', { placeholder: 'Ex: Av. Brasil' })}
+          {renderInput('Número *', destinatario.numero, 'fg-vol-qtd', v => updateDestinatario('numero', v), 'text', { placeholder: '123' })}
         </div>
 
         <div className="form-row mt-negative">
-          <div className="form-group fg-natureza">
-            <label className="form-label">Bairro *</label>
-            <input type="text" required value={destinatario.bairro} onChange={e => updateDestinatario('bairro', e.target.value)} placeholder="Bairro" className="input-field" />
-          </div>
-          <div className="form-group fg-natureza">
-            <label className="form-label">Município *</label>
-            <input type="text" required value={destinatario.municipio} onChange={e => updateDestinatario('municipio', e.target.value)} placeholder="Cidade" className="input-field" />
-          </div>
-          <div className="form-group fg-vol-esp">
-            <label className="form-label">Cód. IBGE Cidade *</label>
-            <input type="text" required value={destinatario.codigoMunicipio} onChange={e => updateDestinatario('codigoMunicipio', e.target.value)} placeholder="Ex: 4305108" className="input-field" />
-          </div>
-          <div className="form-group fg-vol-qtd">
-            <label className="form-label">UF *</label>
-            <input type="text" required maxLength={2} value={destinatario.uf} onChange={e => updateDestinatario('uf', e.target.value.toUpperCase())} placeholder="RS" className="input-field" />
-          </div>
+          {renderInput('Bairro *', destinatario.bairro, 'fg-natureza', v => updateDestinatario('bairro', v), 'text', { placeholder: 'Bairro' })}
+          {renderInput('Município *', destinatario.municipio, 'fg-natureza', v => updateDestinatario('municipio', v), 'text', { placeholder: 'Cidade' })}
+          {renderInput('Cód. IBGE Cidade *', destinatario.codigoMunicipio, 'fg-vol-esp', v => updateDestinatario('codigoMunicipio', v), 'text', { placeholder: 'Ex: 4305108' })}
+          {renderInput('UF *', destinatario.uf, 'fg-vol-qtd', v => updateDestinatario('uf', v.toUpperCase()), 'text', { placeholder: 'RS', maxLength: 2 })}
         </div>
       </fieldset>
     </>

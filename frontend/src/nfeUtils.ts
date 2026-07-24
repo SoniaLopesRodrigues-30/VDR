@@ -130,6 +130,9 @@ export const baixarXmlNfe = (nota: NotaFiscal) => {
 /**
  * Função para gerar e abrir o PDF do DANFE no padrão oficial SEFAZ-RS
  */
+/**
+ * Função refinada para gerar e abrir o PDF do DANFE no padrão oficial SEFAZ-RS
+ */
 export const imprimirPdfNfe = (nota: NotaFiscal) => {
   if (!nota.itens || nota.itens.length === 0) {
     alert('Não é possível gerar o PDF de uma nota sem itens.');
@@ -142,130 +145,134 @@ export const imprimirPdfNfe = (nota: NotaFiscal) => {
     format: 'a4'
   });
 
-  // --- BORDA EXTERNA DA NOTA (Padrão de Formulário Fiscal) ---
+  // --- BORDA EXTERNA GERAL ---
   doc.setLineWidth(0.3);
-  doc.rect(10, 10, 190, 277); // Caixa externa delimitadora
+  doc.rect(10, 10, 190, 277); 
 
-  // --- RECTÂNGULOS DO CABEÇALHO ---
-  doc.rect(10, 10, 80, 30);  // Bloco 1: Dados do Emitente
-  doc.rect(90, 10, 35, 30);  // Bloco 2: Tipo/Série/Número
-  doc.rect(125, 10, 75, 30); // Bloco 3: Chave de Acesso e Código de Barras
+  // --- CABEÇALHO EM BLOCOS AJUSTADOS (Sem frestas) ---
+  doc.rect(10, 10, 75, 30);  // Emitente
+  doc.rect(85, 10, 35, 30);  // Danfe Identificação
+  doc.rect(120, 10, 80, 30); // Chave de Acesso / Código Barras
 
-  // --- BLOCO 1: DADOS DO EMITENTE ---
+  // --- EMITENTE ---
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text('SUA EMPRESA LTDA', 12, 16);
+  doc.setFontSize(9);
+  doc.text('VDR INDÚSTRIA LTDA', 12, 15);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.text('Rua das Indústrias, 456 - Bairro Cinquentenário', 12, 21);
-  doc.text('CEP: 95010-000 - Caxias do Sul - RS', 12, 25);
-  doc.text('Fone: (54) 3221-0000 | email: contato@empresa.com.br', 12, 29);
-  doc.text('CNPJ: 00.000.000/0001-00  |  IE: 029/1111111', 12, 33);
+  doc.text('Rua Dr.José Caetano Melo Filho, 860 - Bairro Nossa Senhora de Fátima', 12, 20);
+  doc.text('CEP: 95043-200 - Caxias do Sul - RS', 12, 24);
+  doc.text('Fone: (54) 984221137 | vdrind@yahoo.com.br', 12, 28);
+  doc.text('CNPJ: 08.634.167/0001-16  |  IE: 029/1111111', 12, 32);
 
-  // --- BLOCO 2: IDENTIFICAÇÃO DO DANFE ---
+  // --- IDENTIFICAÇÃO DO DANFE ---
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.text('DANFE', 107, 17, { align: 'center' });
-  doc.setFontSize(7);
+  doc.setFontSize(11);
+  doc.text('DANFE', 102, 16, { align: 'center' });
+  doc.setFontSize(6.5);
   doc.setFont('helvetica', 'normal');
-  doc.text('DOCUMENTO AUXILIAR', 107, 22, { align: 'center' });
-  doc.text('DA NOTA FISCAL ELETRÔNICA', 107, 25, { align: 'center' });
+  doc.text('DOCUMENTO AUXILIAR', 102, 21, { align: 'center' });
+  doc.text('DA NOTA FISCAL ELETRÔNICA', 102, 24, { align: 'center' });
   
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text(`Nº: ${nota.numero}`, 93, 31);
-  doc.text(`SÉRIE: ${nota.serie}`, 93, 35);
+  doc.text(`Nº: ${nota.numero}`, 88, 31);
+  doc.text(`SÉRIE: ${nota.serie}`, 88, 35);
 
-  // --- BLOCO 3: CHAVE DE ACESSO E PROTOCOLO ---
+  // --- CHAVE DE ACESSO ---
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6);
-  doc.text('CHAVE DE ACESSO PARA CONSULTA DE AUTENTICIDADE NO PORTAL DA SEFAZ-RS', 127, 14);
+  doc.setFontSize(5.5);
+  doc.text('CHAVE DE ACESSO PARA CONSULTA DE AUTENTICIDADE NO PORTAL DA SEFAZ-RS', 122, 14);
   
-  // Simulação de Chave de Acesso de RS (Código Inicial 43)
   const chaveSimulada = `4326070000000000010055001${nota.numero.replace(/\D/g, '').padStart(9, '0')}1000000014`;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
-  doc.text(chaveSimulada.replace(/(.{4})/g, '$1 '), 127, 19); // Coloca espaços a cada 4 dígitos
+  doc.text(chaveSimulada.replace(/(.{4})/g, '$1 '), 122, 18); 
 
-  // Caixa simulada para o Código de Barras Fiscal
+  // Linhas do falso código de barras perfeitamente centralizado
   doc.setLineWidth(0.2);
   doc.setFillColor('#e2e8f0');
-  doc.rect(127, 22, 71, 7, 'F');
+  doc.rect(122, 21, 76, 7, 'F');
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6);
-  doc.setTextColor('#64748b');
-  doc.text('|||| ||| ||||| || |||||| |||| ||||| ||||| |||| |||||', 133, 26);
+  doc.setFontSize(6.5);
+  doc.setTextColor('#475569');
+  doc.text('|||| ||| ||||| || |||||| |||| ||||| ||||| |||| ||||| |||| ||| |||||', 126, 26);
   doc.setTextColor('#000000');
 
-  // Linha e bloco inferior de Protocolo
-  doc.line(10, 40, 200, 40);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.text('NATUREZA DA OPERAÇÃO', 12, 45);
-  doc.setFont('helvetica', 'normal');
-  doc.text(nota.enderecoDestinatario?.municipio === 'Caxias do Sul' ? 'Venda dentro do Estado' : 'Venda para fora do Estado', 12, 49);
+  // --- NATUREZA DA OPERAÇÃO / PROTOCOLO ---
+  doc.rect(10, 40, 110, 12);
+  doc.rect(120, 40, 80, 12);
   
+  doc.setFontSize(6);
   doc.setFont('helvetica', 'bold');
-  doc.text('PROTOCOLO DE AUTORIZAÇÃO DE USO (SEFAZ-RS)', 120, 45);
+  doc.text('NATUREZA DA OPERAÇÃO', 12, 44);
+  doc.text('PROTOCOLO DE AUTORIZAÇÃO DE USO (SEFAZ-RS)', 122, 44);
+  
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text(`143260000123456 - ${nota.dataEmissao} ${nota.horaSaida || '14:00'}:00`, 120, 49);
+  doc.text(nota.enderecoDestinatario?.municipio === 'Caxias do Sul' ? 'Venda de Mercadoria' : 'Venda para Outro Estado', 12, 49);
+  doc.text(`143260000123456 - ${nota.dataEmissao} ${nota.horaSaida || '14:00'}:00`, 122, 49);
 
-  // --- QUADRO DO DESTINATÁRIO ---
-  doc.line(10, 52, 200, 52);
+  // --- DESTINATÁRIO ---
+  doc.rect(10, 52, 190, 24);
+  doc.setFontSize(6);
   doc.setFont('helvetica', 'bold');
-  doc.text('DESTINATÁRIO / REMETENTE', 12, 57);
+  doc.text('DESTINATÁRIO / REMETENTE', 12, 56);
   
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text(`NOME / RAZÃO SOCIAL: ${nota.cliente}`, 12, 63);
-  doc.text(`CNPJ / CPF: ${nota.documento}`, 140, 63);
+  doc.setFontSize(7.5);
+  doc.text(`NOME / RAZÃO SOCIAL: ${nota.cliente}`, 12, 61);
+  doc.text(`CNPJ / CPF: ${nota.documento}`, 135, 61);
   
   const end = nota.enderecoDestinatario;
-  doc.text(`ENDEREÇO: ${end?.logradouro || ''}, ${end?.numero || ''}`, 12, 68);
-  doc.text(`BAIRRO: ${end?.bairro || ''}`, 110, 68);
-  doc.text(`CEP: ${end?.cep || ''}`, 165, 68);
+  doc.text(`ENDEREÇO: ${end?.logradouro || ''}, ${end?.numero || ''}`, 12, 67);
+  doc.text(`BAIRRO: ${end?.bairro || ''}`, 110, 67);
+  doc.text(`CEP: ${end?.cep || ''}`, 165, 67);
   
   doc.text(`MUNICÍPIO: ${end?.municipio || ''}`, 12, 73);
   doc.text(`UF: ${end?.uf || ''}`, 110, 73);
   doc.text(`DATA EMISSÃO: ${nota.dataEmissao}`, 165, 73);
 
-  // --- QUADRO DE IMPOSTOS / TOTAIS ---
-  doc.line(10, 76, 200, 76);
+  // --- CÁLCULO DO IMPOSTO ---
+  doc.rect(10, 76, 190, 16);
+  doc.setFontSize(6);
   doc.setFont('helvetica', 'bold');
-  doc.text('CÁLCULO DO IMPOSTO', 12, 81);
+  doc.text('CÁLCULO DO IMPOSTO', 12, 80);
   
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.text('BASE DE CÁLC. ICMS', 12, 86);
-  doc.text('VALOR DO ICMS', 50, 86);
-  doc.text('B. CÁLC. ICMS ST', 90, 86);
-  doc.text('VALOR DO ICMS ST', 130, 86);
-  doc.text('VALOR TOTAL DA NOTA', 165, 86);
+  doc.setFontSize(6.5);
+  doc.text('BASE DE CÁLC. ICMS', 12, 84);
+  doc.text('VALOR DO ICMS', 50, 84);
+  doc.text('B. CÁLC. ICMS ST', 90, 84);
+  doc.text('VALOR DO ICMS ST', 130, 84);
+  doc.text('VALOR TOTAL DA NOTA', 165, 84);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('R$ 0,00', 12, 91);
-  doc.text('R$ 0,00', 50, 91);
-  doc.text('R$ 0,00', 90, 91);
-  doc.text('R$ 0,00', 130, 91);
-  doc.text(`R$ ${(nota.valorLiquido || 0).toFixed(2)}`, 165, 91);
+  doc.text('R$ 0,00', 12, 89);
+  doc.text('R$ 0,00', 50, 89);
+  doc.text('R$ 0,00', 90, 89);
+  doc.text('R$ 0,00', 130, 89);
+  doc.text(`R$ ${(nota.valorLiquido || 0).toFixed(2)}`, 165, 89);
 
-  // --- DADOS DE TRANSPORTE ---
-  doc.line(10, 94, 200, 94);
+  // --- TRANSPORTADOR ---
+  doc.rect(10, 92, 190, 14);
+  doc.setFontSize(6);
   doc.setFont('helvetica', 'bold');
-  doc.text('TRANSPORTADOR / VOLUMES TRANSPORTADOS', 12, 99);
+  doc.text('TRANSPORTADOR / VOLUMES TRANSPORTADOS', 12, 96);
+  
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text(`RAZÃO SOCIAL: ${nota.transporte?.transportadorNome || 'O MESMO'}`, 12, 104);
-  doc.text(`FRETE POR CONTA: ${nota.transporte?.modalidadeFrete?.split(' - ')[0] || '9'}`, 120, 104);
-  doc.text(`PLACA: ${nota.transporte?.placaVeiculo || 'NÃO INFORMADA'}`, 165, 104);
+  doc.setFontSize(7.5);
+  doc.text(`RAZÃO SOCIAL: ${nota.transporte?.transportadorNome || 'O MESMO'}`, 12, 101);
+  doc.text(`FRETE POR CONTA: ${nota.transporte?.modalidadeFrete?.split(' - ')[0] || '9'}`, 110, 101);
+  doc.text(`PLACA: ${nota.transporte?.placaVeiculo || 'NÃO INFORMADA'}`, 165, 101);
 
   // --- TABELA DE PRODUTOS ---
   const tableRows = nota.itens.map((item) => [
     item.id,
     item.descricao,
     item.ncm,
-    '5102', // CFOP Simulado RS
+    '5102',
     item.unidade,
     item.quantidade.toFixed(2),
     `R$ ${item.valorUnitario.toFixed(2)}`,
@@ -274,11 +281,19 @@ export const imprimirPdfNfe = (nota: NotaFiscal) => {
 
   autoTable(doc, {
     startY: 108,
+    margin: { left: 10, right: 10 },
     head: [['Cód.', 'Descrição do Produto', 'NCM', 'CFOP', 'UN', 'Qtd', 'V. Unit', 'V. Total']],
     body: tableRows,
     theme: 'grid',
-    headStyles: { fillColor: '#f1f5f9', textColor: '#000000', fontStyle: 'bold', lineWidth: 0.1, lineColor: '#000000' },
-    styles: { fontSize: 8, font: 'helvetica', textColor: '#000000' },
+    headStyles: { 
+      fillColor: '#f8fafc', 
+      textColor: '#000000', 
+      fontStyle: 'bold', 
+      lineWidth: 0.1, 
+      lineColor: '#000000',
+      fontSize: 7.5
+    },
+    styles: { fontSize: 7.5, font: 'helvetica', textColor: '#000000' },
     columnStyles: {
       0: { cellWidth: 15 },
       1: { cellWidth: 70 },
@@ -291,30 +306,31 @@ export const imprimirPdfNfe = (nota: NotaFiscal) => {
     }
   });
 
-  // --- DADOS ADICIONAIS / INFORMAÇÕES COMPLEMENTARES ---
+  // --- DADOS ADICIONAIS ---
   const finalY = (doc as any).lastAutoTable?.finalY || 180;
   
   if (finalY < 250) {
-    doc.line(10, finalY + 5, 200, finalY + 5);
+    doc.rect(10, finalY + 4, 190, 35);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.text('DADOS ADICIONAIS', 12, finalY + 10);
-    doc.text('INFORMAÇÕES COMPLEMENTARES', 12, finalY + 15);
+    doc.setFontSize(6);
+    doc.text('DADOS ADICIONAIS', 12, finalY + 8);
+    doc.setFontSize(7);
+    doc.text('INFORMAÇÕES COMPLEMENTARES:', 12, finalY + 13);
     
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
+    doc.setFontSize(6.5);
     const textoComplementar = nota.informacoesComplementares || '';
-    const linhasTexto = doc.splitTextToSize(textoComplementar, 180);
-    doc.text(linhasTexto, 12, finalY + 20);
+    const linhasTexto = doc.splitTextToSize(textoComplementar, 185);
+    doc.text(linhasTexto, 12, finalY + 17);
     
-    // Tarja de Homologação exigida pela SEFAZ
+    // Tarja de homologação
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor('#94a3b8');
+    doc.setFontSize(9);
+    doc.setTextColor('#64748b');
     doc.text('NFE SEM VALOR FISCAL - AMBIENTE DE HOMOLOGAÇÃO SEFAZ-RS', 105, 275, { align: 'center' });
   }
 
-  // Conversão segura em Blob URL
+  // Conversão e abertura segura
   const pdfBlob = doc.output('blob');
   const pdfUrl = URL.createObjectURL(pdfBlob);
   window.open(pdfUrl, '_blank');

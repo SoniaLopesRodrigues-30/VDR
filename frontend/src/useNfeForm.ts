@@ -124,7 +124,7 @@ export function useNfeForm({ proximoNumeroSequencial, onEmitir }: UseNfeFormProp
 
   const [itensAdicionados, setItensAdicionados] = useState<ItemNota[]>([]);
   const [infoComplementares, setInfoComplementares] = useState(
-    'DOCUMENTO EMITIDO POR ME OU EPP OPTANTE PELO SIMPLES NACIONAL. NAO GERA DIREITO A CREDITO FISCAL DE IPI.'
+    'EMPRESA OPTANTE PELO SIMPLES NACIONAL. NAO GERA DIREITO A CREDITO FISCAL DE IPI.'
   );
 
   const updateDestinatario = (field: string, value: string) => 
@@ -234,7 +234,7 @@ export function useNfeForm({ proximoNumeroSequencial, onEmitir }: UseNfeFormProp
       enderecoDestinatario: {
         logradouro: destinatario.logradouro || 'Rua nao informada',
         numero: destinatario.numero || 'SN',
-        bairro: destinatario.bairro || 'Centro',
+        bairro: destinatario.bairro || 'Centro',        
         codigoMunicipio: destinatario.codigoMunicipio,
         municipio: destinatario.municipio,
         uf: destinatario.uf,
