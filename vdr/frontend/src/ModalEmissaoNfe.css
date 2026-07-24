@@ -1,0 +1,366 @@
+/* ==========================================================================
+   ESTRUTURA DO MODAL (OVERLAY E CONTEÚDO)
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background-color: #ffffff;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  padding: 30px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.btn-close-modal {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.btn-close-modal:hover {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.modal-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 24px 0;
+}
+
+/* ==========================================================================
+   FORMULÁRIO, FIELDSETS E SEÇÕES
+   ========================================================================== */
+.form-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section-divider {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background-color: #ffffff;
+}
+
+.section-subtitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  background-color: #ffffff;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.mt-negative {
+  margin-top: -4px;
+}
+
+.mt-info {
+  margin-top: 8px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 140px;
+}
+
+/* Proporções de Largura dos Campos */
+.fg-natureza { flex: 2; min-width: 200px; }
+.fg-destinatario { flex: 3; min-width: 250px; }
+.fg-documento { flex: 2; min-width: 180px; }
+.fg-vol-qtd { flex: 1; min-width: 100px; }
+.fg-vol-esp { flex: 1.5; min-width: 130px; }
+.fg-peso { flex: 1.5; min-width: 130px; }
+
+.fg-prod-desc { flex: 4; min-width: 200px; }
+.fg-prod-ncm { flex: 1.5; min-width: 110px; }
+.fg-prod-un { flex: 1.2; min-width: 80px; }
+.fg-prod-qtd { flex: 1.2; min-width: 80px; }
+.fg-prod-val { flex: 1.5; min-width: 110px; }
+.fg-btn-add { display: flex; align-items: flex-end; }
+
+.fg-full-width {
+  flex: 100%;
+}
+
+/* Componentes de Entrada */
+.form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.input-field {
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #1f2937;
+  background-color: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.input-field:disabled {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.textarea-field {
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* Botão de Inclusão Rápida */
+.btn-add-item {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.btn-add-item:hover {
+  background-color: #1d4ed8;
+}
+
+/* ==========================================================================
+   TABELA INTERNA DE PRODUTOS
+   ========================================================================== */
+.internal-table-wrapper {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.internal-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.internal-table th {
+  background-color: #f9fafb;
+  color: #4b5563;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.internal-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #374151;
+}
+
+.internal-table tr:last-child td {
+  border-bottom: none;
+}
+
+.td-internal-desc {
+  font-weight: 500;
+}
+
+.td-internal-un {
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.td-internal-ncm {
+  color: #6b7280;
+  font-family: monospace;
+}
+
+.td-internal-subtotal {
+  font-weight: 600;
+  color: #111827;
+}
+
+.th-center {
+  text-align: center;
+  width: 60px;
+}
+
+.btn-remove-item {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.btn-remove-item:hover {
+  background-color: #fee2e2;
+}
+
+/* ==========================================================================
+   PAINEL DE TOTAIS E BOTÕES DO RODAPÉ
+   ========================================================================== */
+.tax-panel {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 400px;
+  margin-left: auto;
+}
+
+.tax-row-products,
+.tax-row-estimate,
+.tax-row-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.weight-bold {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.tax-free-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #16a34a;
+  background-color: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.tax-row-total {
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 10px;
+  margin-top: 2px;
+  font-size: 1rem;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.tax-total-value {
+  color: #2563eb;
+  font-size: 1.125rem;
+}
+
+.modal-footer {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 20px;
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-cancel {
+  background-color: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-cancel:hover {
+  background-color: #f9fafb;
+}
+
+.btn-transmit {
+  background-color: #16a34a;
+  color: #ffffff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.btn-transmit:hover {
+  background-color: #15803d;
+}
+
+.btn-transmit:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.3);
+}
+
+input[type="date"] {
+  position: relative;
+}
