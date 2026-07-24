@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { type NotaFiscal } from './ModalEmissaoNfe';
+import type { NotaFiscal } from './useNfeForm';
 import { downloadXml, downloadPdfBase64 } from './nfeUtils';
 
 export function useNfe() {

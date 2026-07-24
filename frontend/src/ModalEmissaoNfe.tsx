@@ -1,55 +1,16 @@
+// src/ModalEmissaoNfe.tsx
 import React from 'react';
 import { X } from 'lucide-react';
-import { useModalEmissaoNfe } from './useModalEmissaoNfe';
-import { SeccaoDadosGerais } from './components/SeccaoDadosGerais';
-import { SeccaoCliente } from './components/SeccaoCliente';
-import { SeccaoProdutos } from './components/SeccaoProdutos';
-import { SeccaoTributaria } from './components/SeccaoTributaria'; 
-import { SeccaoTransporte } from './components/SeccaoTransporte';
-import { SeccaoFinanceiro } from './components/SeccaoFinanceiro';
-import { SeccaoResumo } from './components/SeccaoResumo';
+import { useNfeForm } from './useNfeForm';
+import type { NotaFiscal } from './useNfeForm';
+import { DadosGeraisFiscais } from './DadosGeraisFiscais';
+import { DetalhamentoProdutos } from './DetalhamentoProdutos';
+import { LogisticaTransporte } from './LogisticaTransporte'; 
+import { FinanceiroObservacoes } from './FinanceiroObservacoes'; 
+
+import { baixarXmlNfe, imprimirPdfNfe } from './nfeUtils'; 
+
 import './ModalEmissaoNfe.css';
-
-export interface ItemNota {
-  id: string;
-  descricao: string;
-  ncm: string;
-  unidade: string;
-  quantidade: number;
-  valorUnitario: number;
-  valorTotalItem: number;
-}
-
-export interface DuplicataNota { numero: string; vencimento: string; valor: number; }
-export interface FaturaNota { numero: string; valorOriginal: number; valorDesconto?: number; valorLiquido: number; dataVencimento?: string; }
-
-export interface NotaFiscal {
-  id: number;
-  numero: string;
-  serie: string;
-  cliente: string;
-  documento: string;
-  dataEmissao: string;
-  status: 'Autorizada' | 'Pendente' | 'Cancelada';
-  itens: ItemNota[];
-  valorBruto: number;
-  valorLiquido: number;
-  quantidadeVolumes?: string;
-  especieVolumes?: string;
-  pesoBruto?: string;
-  pesoLiquido?: string;
-  informacoesComplementares?: string;
-  tipoOperacao: '0 - Entrada' | '1 - Saída';
-  destinoOperacao: '1 - Operação Interna (Estadual)' | '2 - Operação Interestadual' | '3 - Operação com Exterior';
-  finalidadeEmissao: '1 - NF-e Normal' | '2 - NF-e Complementar' | '3 - NF-e de Ajuste' | '4 - Devolução de Mercadoria';
-  dataSaida: string;
-  horaSaida: string;
-  pagamento: { formaPagamento: 'Dinheiro' | 'Cartão de Crédito' | 'Cartão de Débito' | 'Pix' | 'Boleto' | 'Sem Pagamento'; meioPagamento: string; };
-  transporte: { modalidadeFrete: '0 - Contratação por conta do Remetente (CIF)' | '1 - Contratação por conta do Destinatário (FOB)' | '9 - Sem Ocorrência de Transporte'; transportadorNome?: string; transportadorCnpjCpf?: string; placaVeiculo?: string; };
-  enderecoDestinatario: { logradouro: string; numero: string; bairro: string; codigoMunicipio: string; municipio: string; uf: string; cep: string; };
-  tributacao: { icms: string; ipi: string; pis: string; };
-  cobranca?: { fatura: FaturaNota; duplicatas: DuplicataNota[]; };
-}
 
 interface ModalEmissaoProps {
   onClose: () => void;
@@ -58,30 +19,69 @@ interface ModalEmissaoProps {
 }
 
 export function ModalEmissaoNfe({ onClose, onEmitir, proximoNumeroSequencial }: ModalEmissaoProps) {
-  const state = useModalEmissaoNfe({ onEmitir, proximoNumeroSequencial });
+  
+  // Função interceptadora para gerar os documentos automaticamente quando o hook disparar o onEmitir
+   // Função interceptadora corrigida e ativada
+  const handleOnEmitirInterceptado = (notaGerada: NotaFiscal) => {    
+    // 1. Abre o PDF do DANFE na tela para visualização
+    imprimirPdfNfe(notaGerada);
+    
+    // CORREÇÃO: Linha ativada (sem as duas barras) para fazer o download do XML junto
+    baixarXmlNfe(notaGerada);
+
+    // 3. Executa a função original para atualizar o banco/sistema
+    onEmitir(notaGerada);
+  };
+
+
+  const {
+    destinatario, dadosFiscais, produtoInput, logistica, itensAdicionados,
+    infoComplementares, valorBrutoCalculado, valorLiquidoCalculado, numeroFaturaCalculado,
+    updateDestinatario, updateDadosFiscais, updateProdutoInput, updateLogistica,
+    setInfoComplementares, handleAdicionarItemTabela, handleRemoverItemTabela, handleEmitirNfe,
+  } = useNfeForm({ proximoNumeroSequencial, onEmitir: handleOnEmitirInterceptado });
 
   return (
-    <div className="modal-overlay">
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div className="modal-content">
-        <button type="button" onClick={onClose} className="btn-close-modal">
+        <button 
+          type="button" 
+          onClick={onClose} 
+          className="btn-close-modal"
+          aria-label="Fechar modal"
+        >
           <X size={20} />
         </button>
 
-        <h3 className="modal-title">Emitir Nota Fiscal (NF-e)</h3>
+        <h3 id="modal-title" className="modal-title">Emitir Nota Fiscal (NF-e)</h3>
         <p className="modal-subtitle">Preencha as seções abaixo de forma estruturada para realizar a transmissão fiscal.</p>
 
-        <form onSubmit={state.handleEmitirNfe} className="form-layout">
-          <SeccaoDadosGerais state={state} />
-          <SeccaoCliente state={state} />
-          <SeccaoProdutos state={state} />
-          <SeccaoTributaria state={state} />
-          <SeccaoTransporte state={state} />
-          <SeccaoFinanceiro state={state} />
-          <SeccaoResumo state={state} />
+        <form onSubmit={handleEmitirNfe} className="form-layout">
+          
+          <DadosGeraisFiscais 
+            dadosFiscais={dadosFiscais} destinatario={destinatario}
+            updateDadosFiscais={updateDadosFiscais} updateDestinatario={updateDestinatario}
+          />
+
+          <DetalhamentoProdutos 
+            produtoInput={produtoInput} itensAdicionados={itensAdicionados} updateProdutoInput={updateProdutoInput}
+            handleAdicionarItemTabela={handleAdicionarItemTabela} handleRemoverItemTabela={handleRemoverItemTabela}
+          />
+
+          <LogisticaTransporte 
+            logistica={logistica} updateLogistica={updateLogistica} 
+          />
+
+          <FinanceiroObservacoes 
+            logistica={logistica} dadosFiscais={dadosFiscais} infoComplementares={infoComplementares}
+            numeroFaturaCalculado={numeroFaturaCalculado} valorBrutoCalculado={valorBrutoCalculado}
+            valorLiquidoCalculado={valorLiquidoCalculado} updateLogistica={updateLogistica}
+            updateDadosFiscais={updateDadosFiscais} setInfoComplementares={setInfoComplementares}
+          />
 
           <div className="modal-footer">
             <button type="button" onClick={onClose} className="btn-cancel">Cancelar</button>
-            <button type="submit" className="btn-transmit">Transmitir NF-e</button>
+            <button type="submit" className="btn-transmit">Transmitir & Gerar Documentos</button>
           </div>
         </form>
       </div>
