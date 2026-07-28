@@ -1,8 +1,9 @@
-import React from 'react';
+///Nfe.tsx
 import { Plus, Search, FileText, Download, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import { useNfe } from './useNfe';
 import { baixarXmlNfe, imprimirPdfNfe } from './nfeUtils';
 import { ModalEmissaoNfe, type NotaFiscal } from './ModalEmissaoNfe';
+
 import './Nfe.css'; 
 
 export default function Nfe() {

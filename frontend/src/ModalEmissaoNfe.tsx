@@ -1,5 +1,5 @@
 // src/ModalEmissaoNfe.tsx
-import React from 'react';
+
 import { X } from 'lucide-react';
 import { useNfeForm } from './useNfeForm';
 import type { NotaFiscal } from './useNfeForm';

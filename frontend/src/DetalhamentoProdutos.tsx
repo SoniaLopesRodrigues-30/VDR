@@ -1,5 +1,5 @@
 /// DetalhamentoProdutos.tsx
-import React from 'react';
+
 import { Package, Plus, Trash2 } from 'lucide-react';
 import type { ItemNota } from './useNfeForm';
 interface DetalhamentoProdutosProps {

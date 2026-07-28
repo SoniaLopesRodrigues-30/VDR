@@ -1,5 +1,4 @@
 // src/DadosGeraisFiscais.tsx
-import React from 'react';
 import { FileText, User } from 'lucide-react';
 
 interface DadosGeraisProps {
