@@ -1,13 +1,35 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { Users, FileText, ClipboardList, Package, LayoutDashboard, Receipt } from 'lucide-react';
 import Clientes from './Clientes';
 import Orcamentos from './components/Orcamentos/Orcamentos'; 
 import Nfe from './Nfe';
 
-// Componentes temporários para as outras telas não quebrarem o código
+// 1. IMPORTAÇÃO CORRIGIDA COM CHAVES PARA EVITAR O ERRO DE EXPORT DEFAULT
+import { OrdensServico } from "./components/OrdServ/OrdensServico";
+
+// Componentes temporários restantes
 const Dashboard = () => <div style={{ padding: '24px' }}><h2>📊 Painel Geral (Dashboard)</h2></div>;
-const OrdensServico = () => <div style={{ padding: '24px' }}><h2>🛠️ Ordens de Serviço (OS)</h2></div>;
 const Produtos = () => <div style={{ padding: '24px' }}><h2>📦 Cadastro de Produtos</h2></div>;
+
+// Componente auxiliar para dar efeito visual de "Link Ativo" no menu lateral
+function MenuLink({ to, children }: { to: string; children: React.ReactNode }) {
+  const location = useLocation();
+  const isAtivo = location.pathname === to;
+
+  return (
+    <Link 
+      to={to} 
+      style={{
+        ...menuStyle,
+        backgroundColor: isAtivo ? '#1e293b' : 'transparent',
+        color: isAtivo ? '#38bdf8' : '#cbd5e1'
+      }}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export default function App() {
   return (
@@ -20,12 +42,13 @@ export default function App() {
             VDR GESTOR
           </div>
 
-          <Link to="/" style={menuStyle}><LayoutDashboard size={20} /> Dashboard</Link>
-          <Link to="/clientes" style={menuStyle}><Users size={20} /> Clientes</Link>
-          <Link to="/produtos" style={menuStyle}><Package size={20} /> Produtos</Link>
-          <Link to="/orcamentos" style={menuStyle}><FileText size={20} /> Orçamentos</Link>
-          <Link to="/ordens" style={menuStyle}><ClipboardList size={20} /> Ordens de Serviço</Link>
-          <Link to="/nfe" style={menuStyle}><Receipt size={20} /> Nota Fiscal (NF-e)</Link>
+          {/* links utilizando o modificador dinâmico de ativo */}
+          <MenuLink to="/"><LayoutDashboard size={20} /> Dashboard</MenuLink>
+          <MenuLink to="/clientes"><Users size={20} /> Clientes</MenuLink>
+          <MenuLink to="/produtos"><Package size={20} /> Produtos</MenuLink>
+          <MenuLink to="/orcamentos"><FileText size={20} /> Orçamentos</MenuLink>
+          <MenuLink to="/ordens"><ClipboardList size={20} /> Ordens de Serviço</MenuLink>
+          <MenuLink to="/nfe"><Receipt size={20} /> Nota Fiscal (NF-e)</MenuLink>
           
           <div style={{ marginTop: 'auto', fontSize: '12px', color: '#64748b', textAlign: 'center', borderTop: '1px solid #334155', paddingTop: '12px' }}>
             v1.0.0 (2026)
@@ -39,6 +62,7 @@ export default function App() {
             <Route path="/clientes" element={<Clientes />} />
             <Route path="/produtos" element={<Produtos />} />
             <Route path="/orcamentos" element={<Orcamentos />} />
+            {/* 2. ROTA MAPEADA PARA RECEBER O COMPONENTE NOMEADO */}
             <Route path="/ordens" element={<OrdensServico />} />
             <Route path="/nfe" element={<Nfe />} />
           </Routes>

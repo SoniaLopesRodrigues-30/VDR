@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
-export interface ItemOrcamento {
+// Definição das interfaces locais para manter o arquivo auto-suficiente
+interface ItemOrcamento {
   id: number;
   descricao: string;
   quantidade: number;
@@ -8,74 +9,153 @@ export interface ItemOrcamento {
   total: number;
 }
 
-export interface Orcamento {
+interface Orcamento {
   id: number;
-  clienteId: number;
+  numero: string;
   clienteNome: string;
-  dataCriacao: string;
+  clienteId: number;
   validade: string;
-  itens: ItemOrcamento[];
   valorTotal: number;
   status: 'Pendente' | 'Aprovado' | 'Cancelado';
 }
 
 export function useOrcamentos() {
-  const [busca, setBusca] = useState('');
-  const [modalAberto, setModalAberto] = useState(false);
+  // --- ESTADOS DO CONTROLADOR DO MODAL E BUSCA ---
+  const [modalAberto, setModalAberto] = useState<boolean>(false);
+  const [busca, setBusca] = useState<string>('');
 
-  const [clienteId, setClienteId] = useState<number>(0);
-  const [validade, setValidade] = useState('');
+  // --- ESTADOS DOS CAMPOS DO FORMULÁRIO DE ORÇAMENTO ---
+  const [clienteId, setClienteId] = useState<number | ''>('');
+  const [validade, setValidade] = useState<string>('');
   const [status, setStatus] = useState<'Pendente' | 'Aprovado' | 'Cancelado'>('Pendente');
 
-  const [itens, setItens] = useState<ItemOrcamento[]>([]);
-  const [descricaoItem, setDescricaoItem] = useState('');
+  // --- ESTADOS DE CRIAÇÃO DINÂMICA DE UM NOVO ITEM ---
+  const [descricaoItem, setDescricaoItem] = useState<string>('');
   const [qtdItem, setQtdItem] = useState<number>(1);
   const [valorItem, setValorItem] = useState<number>(0);
 
-  const [clientesDisponiveis] = useState([
-    { id: 1, nome: 'Ana Silva' },
-    { id: 2, nome: 'Tech Soluções Ltda' }
+  // --- ESTADO DA LISTA DE ITENS GERADOS (Sempre inicializado como array vazio) ---
+  const [itens, setItens] = useState<ItemOrcamento[]>([]);
+
+  // --- DADOS SIMULADOS (MOCKADOS) DE CLIENTES E ORÇAMENTOS EXISTENTES ---
+  const [clientesDisponiveis] = useState<{ id: number; nome: string }[]>([
+    { id: 1, nome: 'Tech Solutions Ltda' },
+    { id: 2, nome: 'Comércio de Alimentos Silva' },
+    { id: 3, nome: 'Indústria Metalúrgica Sul' },
   ]);
 
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([
-    {
-      id: 101,
-      clienteId: 1,
-      clienteNome: 'Ana Silva',
-      dataCriacao: '28/07/2026',
-      validade: '2026-08-15',
-      itens: [{ id: 1, descricao: 'Consultoria Web React', quantidade: 1, valorUnitario: 1500, total: 1500 }],
-      valorTotal: 1500,
-      status: 'Pendente'
-    }
+    { id: 101, numero: 'ORC-001', clienteId: 1, clienteNome: 'Tech Solutions Ltda', validade: '2026-08-15', valorTotal: 1550.00, status: 'Aprovado' },
+    { id: 102, numero: 'ORC-002', clienteId: 2, clienteNome: 'Comércio de Alimentos Silva', validade: '2026-08-20', valorTotal: 430.50, status: 'Pendente' },
   ]);
 
-  const valorTotalGeral = itens.reduce((soma, item) => soma + (item.total || 0), 0);
+  // --- CÁLCULO DINÂMICO DO TOTAL GERAL (Impede variáveis indefinidas e quebras) ---
+  const valorTotalGeral = useMemo(() => {
+    if (!Array.isArray(itens)) return 0;
+    return itens.reduce((acc, item) => acc + (item.total || 0), 0);
+  }, [itens]);
 
-  const handleAdicionarItem = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!descricaoItem || qtdItem <= 0 || valorItem <= 0) return;
-    setItens([...itens, { id: Date.now(), descricao: descricaoItem, quantidade: Number(qtdItem), valorUnitario: Number(valorItem), total: Number(qtdItem) * Number(valorItem) }]);
-    setDescricaoItem(''); setQtdItem(1); setValorItem(0);
+  // --- FILTRAGEM DINÂMICA DA TABELA PRINCIPAL ---
+  const orcamentosFiltrados = useMemo(() => {
+    const termo = busca.toLowerCase().trim();
+    if (!termo) return orcamentos;
+    return orcamentos.filter(o => 
+      o.numero.toLowerCase().includes(termo) || 
+      o.clienteNome.toLowerCase().includes(termo)
+    );
+  }, [busca, orcamentos]);
+
+  // --- FUNÇÕES DE MANIPULAÇÃO LOGICA ---
+
+  // Insere um produto validado na tabela interna do orçamento
+  const handleAdicionarItem = () => {
+    const quantidade = Number(qtdItem) || 1;
+    const valorUnitario = Number(valorItem) || 0;
+
+    const novoItem: ItemOrcamento = {
+      id: Date.now() + Math.random(), // Evita colisão de IDs na listagem
+      descricao: descricaoItem.trim(),
+      quantidade,
+      valorUnitario,
+      total: quantidade * valorUnitario
+    };
+
+    setItens(prevItens => [...prevItens, novoItem]);
+
+    // Reseta o estado dos inputs para a próxima inserção
+    setDescricaoItem('');
+    setQtdItem(1);
+    setValorItem(0);
   };
 
+  // Limpa o formulário por completo e fecha a janela do modal
   const fecharModal = () => {
-    setClienteId(0); setValidade(''); setStatus('Pendente'); setItens([]);
-    setDescricaoItem(''); setQtdItem(1); setValorItem(0); setModalAberto(false);
+    setClienteId('');
+    setValidade('');
+    setDescricaoItem('');
+    setQtdItem(1);
+    setValorItem(0);
+    setItens([]);
+    setStatus('Pendente');
+    setModalAberto(false);
   };
 
+  // Consolida a inserção e salva o registro do orçamento definitivo
   const handleSalvarOrcamento = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clienteId || itens.length === 0) return;
-    const cli = clientesDisponiveis.find(c => c.id === Number(clienteId));
-    setOrcamentos([{ id: Date.now(), clienteId: Number(clienteId), clienteNome: cli ? cli.nome : 'Desconhecido', dataCriacao: new Date().toLocaleDateString('pt-BR'), validade, itens, valorTotal: valorTotalGeral, status }, ...orcamentos]);
+
+    if (clienteId === '') {
+      alert('Por favor, selecione um cliente.');
+      return;
+    }
+
+    if (itens.length === 0) {
+      alert('Adicione pelo menos um item para salvar o orçamento.');
+      return;
+    }
+
+    const clienteObj = clientesDisponiveis.find(c => c.id === clienteId);
+    
+    const novoOrcamento: Orcamento = {
+      id: Date.now(),
+      numero: `ORC-00${orcamentos.length + 1}`,
+      clienteId,
+      clienteNome: clienteObj ? clienteObj.nome : 'Cliente Desconhecido',
+      validade,
+      valorTotal: valorTotalGeral,
+      status
+    };
+
+    setOrcamentos(prev => [novoOrcamento, ...prev]);
     fecharModal();
+    alert('Orçamento gravado com sucesso!');
   };
 
+  // Retorna os estados expostos mapeados idênticos às necessidades do seu arquivo pai
   return {
-    busca, setBusca, modalAberto, setModalAberto, clienteId, setClienteId, validade, setValidade, status, setStatus,
-    itens, setItens, descricaoItem, setDescricaoItem, qtdItem, setQtdItem, valorItem, setValorItem,
-    clientesDisponiveis, valorTotalGeral, handleAdicionarItem, fecharModal, handleSalvarOrcamento,
-    orcamentosFiltrados: orcamentos.filter(o => o.clienteNome.toLowerCase().includes(busca.toLowerCase()) || o.id.toString().includes(busca))
+    modalAberto,
+    setModalAberto,
+    busca,
+    setBusca,
+    orcamentosFiltrados,
+    clienteId,
+    setClienteId,
+    clientesDisponiveis,
+    validade,
+    setValidade,
+    descricaoItem,
+    setDescricaoItem,
+    qtdItem,
+    setQtdItem,
+    valorItem,
+    setValorItem,
+    itens,
+    setItens,
+    valorTotalGeral,
+    status,
+    setStatus,
+    handleAdicionarItem,
+    fecharModal,
+    handleSalvarOrcamento
   };
 }
