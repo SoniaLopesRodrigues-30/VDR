@@ -1,11 +1,11 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Users, FileText, ClipboardList, Package, LayoutDashboard, Receipt } from 'lucide-react';
 import Clientes from './Clientes';
+import Orcamentos from './components/Orcamentos/Orcamentos'; 
 import Nfe from './Nfe';
 
 // Componentes temporários para as outras telas não quebrarem o código
 const Dashboard = () => <div style={{ padding: '24px' }}><h2>📊 Painel Geral (Dashboard)</h2></div>;
-const Orcamentos = () => <div style={{ padding: '24px' }}><h2>📄 Gestão de Orçamentos</h2></div>;
 const OrdensServico = () => <div style={{ padding: '24px' }}><h2>🛠️ Ordens de Serviço (OS)</h2></div>;
 const Produtos = () => <div style={{ padding: '24px' }}><h2>📦 Cadastro de Produtos</h2></div>;
 
