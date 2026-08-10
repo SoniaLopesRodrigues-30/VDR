@@ -306,3 +306,49 @@
   font-weight: 600;
   color: #0f172a;
 }
+
+/* Classes para os Dados Básicos e Contatos */
+.form-group-nome-razao {
+  flex: 1 1 240px;
+}
+
+.form-group-documento {
+  flex: 1 1 180px;
+}
+
+.form-group-ie {
+  flex: 1 1 180px;
+}
+
+.form-group-email {
+  flex: 1 1 240px;
+}
+
+.form-group-telefone {
+  flex: 1 1 180px;
+}
+
+/* Classes para o Bloco de Endereço */
+.form-group-bairro {
+  flex: 1 1 140px;
+}
+
+.form-group-cidade {
+  flex: 1 1 140px;
+}
+
+.form-group-uf {
+  flex: 0 0 70px;
+}
+
+.form-group-status {
+  flex: 0 0 100px;
+}
+
+/* Alinhamento dos Botões do Modal */
+.modal-actions-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}

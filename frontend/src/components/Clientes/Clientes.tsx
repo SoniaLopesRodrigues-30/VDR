@@ -1,30 +1,19 @@
-//Clientes.tsx
+// Clientes.tsx
 import React from 'react';
 import { Plus, Search, Trash2, Edit, X } from 'lucide-react';
 import { useClientes } from './useClientes';
+import { DadosBasicosForm, EnderecoForm } from './CamposFormulario';
 import './Clientes.css';
-
 
 export default function Clientes() {
   const {
-    busca, setBusca,
-    modalAberto, setModalAberto,
-    nome, setNome,
-    tipo, setTipo,
-    documento, setDocumento,
-    email, setEmail,
-    telefone, setTelefone,
-    status, setStatus,
-    cep, setCep,
-    logradouro, setLogradouro,
-    numero, setNumero,
-    bairro, setBairro,
-    cidade, setCidade,
-    uf, setUf,
-    clientesFiltrados,
-    handleSalvarCliente,
-    handleDeletar,
-    fecharModal
+    busca, setBusca, modalAberto, setModalAberto,
+    nome, setNome, tipo, setTipo, documento, setDocumento,
+    inscricaoEstadual, setInscricaoEstadual, email, setEmail,
+    telefone, setTelefone, status, setStatus, cep, setCep,
+    logradouro, setLogradouro, numero, setNumero, bairro, setBairro,
+    cidade, setCidade, uf, setUf, clientesFiltrados,
+    handleSalvarCliente, handleDeletar, fecharModal
   } = useClientes();
 
   return (
@@ -98,7 +87,7 @@ export default function Clientes() {
         </table>
       </div>
 
-      {/* MODAL */}
+      {/* MODAL DE CADASTRO */}
       {modalAberto && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -111,7 +100,7 @@ export default function Clientes() {
 
             <form onSubmit={handleSalvarCliente} className="form-modal">
               
-              {/* SELETOR DE TIPO (FÍSICA / JURÍDICA) */}
+              {/* SELETOR DE TIPO */}
               <div className="form-group">
                 <label className="form-label">Tipo de Pessoa</label>
                 <div className="form-radio-group">
@@ -124,82 +113,35 @@ export default function Clientes() {
                 </div>
               </div>
 
-              {/* DADOS BÁSICOS (LADO A LADO) */}
-              <div className="form-row">
-                <div className="form-group" style={{ flex: '1 1 240px' }}>
-                  <label className="form-label">
-                    {tipo === 'Física' ? 'Nome Completo *' : 'Razão Social *'}
-                  </label>
-                  <input type="text" required value={nome} onChange={e => setNome(e.target.value)} placeholder={tipo === 'Física' ? "Ex: Maria Souza" : "Ex: Minha Empresa Ltda"} className="input-padrao" />
-                </div>
+              {/* BLOCO 1: DADOS BÁSICOS (Subcomponente Organizado) */}
+              <DadosBasicosForm 
+                tipo={tipo} nome={nome} setNome={setNome}
+                documento={documento} setDocumento={setDocumento}
+                inscricaoEstadual={inscricaoEstadual} setInscricaoEstadual={setInscricaoEstadual}
+              />
 
-                <div className="form-group" style={{ flex: '1 1 180px' }}>
-                  <label className="form-label">
-                    {tipo === 'Física' ? 'CPF *' : 'CNPJ *'}
-                  </label>
-                  <input type="text" required value={documento} onChange={e => setDocumento(e.target.value)} placeholder={tipo === 'Física' ? "000.000.000-00" : "00.000.000/0001-00"} className="input-padrao" />
-                </div>
-              </div>
-
-              {/* CONTATOS (LADO A LADO) */}
+              {/* CONTATOS */}
               <div className="form-row">
-                <div className="form-group" style={{ flex: '1 1 240px' }}>
+                <div className="form-group form-group-email">
                   <label className="form-label">E-mail *</label>
                   <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="Ex: maria@email.com" className="input-padrao" />
                 </div>
-                <div className="form-group" style={{ flex: '1 1 180px' }}>
+                <div className="form-group form-group-telefone">
                   <label className="form-label">Telefone</label>
-                  {/* CORREÇÃO DO ONCHANGE REALIZADA AQUI */}
                   <input type="text" value={telefone} onChange={e => setTelefone(e.target.value)} placeholder="Ex: (11) 99999-9999" className="input-padrao" />
                 </div>
               </div>
 
-              {/* DIVISOR VISUAL PARA ENDEREÇO */}
-              <div className="divisor-endereco">
-                <span className="label-secao">Endereço do Cliente</span>
-              </div>
-
-              {/* ENDEREÇO LINHA 1 (CEP / LOGRADOURO / NÚMERO) */}
-              <div className="form-row">
-                <div className="form-group flex-cep">
-                  <label className="form-label" style={{ fontSize: '13px' }}>CEP</label>
-                  <input type="text" value={cep} onChange={e => setCep(e.target.value)} placeholder="00000-000" className="input-padrao" />
-                </div>
-                <div className="form-group flex-rua">
-                  <label className="form-label" style={{ fontSize: '13px' }}>Rua / Logradouro</label>
-                  <input type="text" value={logradouro} onChange={e => setLogradouro(e.target.value)} placeholder="Ex: Av. Central" className="input-padrao" />
-                </div>
-                <div className="form-group flex-num">
-                  <label className="form-label" style={{ fontSize: '13px' }}>Número</label>
-                  <input type="text" value={numero} onChange={e => setNumero(e.target.value)} placeholder="Ex: 123" className="input-padrao" />
-                </div>
-              </div>
-
-              {/* ENDEREÇO LINHA 2 (BAIRRO / CIDADE / UF / STATUS) */}
-              <div className="form-row">
-                <div className="form-group" style={{ flex: '1 1 140px' }}>
-                  <label className="form-label" style={{ fontSize: '13px' }}>Bairro</label>
-                  <input type="text" value={bairro} onChange={e => setBairro(e.target.value)} placeholder="Ex: Centro" className="input-padrao" />
-                </div>
-                <div className="form-group" style={{ flex: '1 1 140px' }}>
-                  <label className="form-label" style={{ fontSize: '13px' }}>Cidade</label>
-                  <input type="text" value={cidade} onChange={e => setCidade(e.target.value)} placeholder="Ex: São Paulo" className="input-padrao" />
-                </div>
-                <div className="form-group" style={{ flex: '0 0 70px' }}>
-                  <label className="form-label" style={{ fontSize: '13px' }}>UF</label>
-                  <input type="text" maxLength={2} value={uf} onChange={e => setUf(e.target.value.toUpperCase())} placeholder="SP" className="input-padrao" />
-                </div>
-                <div className="form-group" style={{ flex: '0 0 100px' }}>
-                  <label className="form-label" style={{ fontSize: '13px' }}>Status</label>
-                  <select value={status} onChange={e => setStatus(e.target.value as 'Ativo' | 'Inativo')} className="input-padrao">
-                    <option value="Ativo">Ativo</option>
-                    <option value="Inativo">Inativo</option>
-                  </select>
-                </div>
-              </div>
+              {/* BLOCO 2: ENDEREÇO COMPLETO E STATUS (Subcomponente Organizado) */}
+              <EnderecoForm 
+                cep={cep} setCep={setCep} logradouro={logradouro} setLogradouro={setLogradouro}
+                numero={numero} setNumero={setNumero} bairro={bairro} setBairro={setBairro}
+                cidade={cidade} setCidade={setCidade} uf={uf} setUf={setUf}
+                status={status} setStatus={setStatus}
+              />
 
               {/* BOTÕES DO FOOTER */}
-              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '24px' }}>
+              <div className="modal-actions-footer">
                 <button type="button" onClick={fecharModal} className="btn-cancelar">Cancelar</button>
                 <button type="submit" className="btn-salvar">Salvar Cliente</button>
               </div>

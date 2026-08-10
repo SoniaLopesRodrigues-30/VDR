@@ -15,6 +15,7 @@ export interface Cliente {
   nome: string;
   tipo: 'Física' | 'Jurídica';
   documento: string; 
+  inscricao_estadual?: string | null; // Adicionado à tipagem do front
   email: string;
   telefone: string;
   status: 'Ativo' | 'Inativo';
@@ -30,6 +31,7 @@ export function useClientes() {
   const [nome, setNome] = useState('');
   const [tipo, setTipo] = useState<'Física' | 'Jurídica'>('Física');
   const [documento, setDocumento] = useState('');
+  const [inscricaoEstadual, setInscricaoEstadual] = useState(''); // Novo Estado Adicionado
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [status, setStatus] = useState<'Ativo' | 'Inativo'>('Ativo');
@@ -66,6 +68,7 @@ export function useClientes() {
           nome: c.nome,
           tipo: c.tipo,
           documento: c.documento || '',
+          inscricao_estadual: c.inscricao_estadual || '',
           email: c.email || '',
           telefone: c.telefone || '',
           status: c.status,
@@ -96,6 +99,7 @@ export function useClientes() {
     setNome('');
     setTipo('Física');
     setDocumento('');
+    setInscricaoEstadual(''); // Limpa o novo campo ao fechar
     setEmail('');
     setTelefone('');
     setStatus('Ativo');
@@ -124,6 +128,7 @@ export function useClientes() {
           nome,
           tipo,
           documento,
+          inscricao_estadual: tipo === 'Jurídica' ? inscricaoEstadual : null, // Só salva se for jurídica
           email,
           telefone,
           status,
@@ -140,15 +145,16 @@ export function useClientes() {
           alert('Este documento (CPF/CNPJ) já está cadastrado no sistema.');
           return;
         }
-        throw error;
+        throw error; // Se for erro de permissão (401 RLS), vai cair no catch abaixo
       }
 
       fecharModal();
       await carregarClientesDoBanco(); // Atualiza a lista trazendo o cliente novo da nuvem
       alert('Cliente gravado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao salvar no banco:', error);
-      alert('Não foi possível gravar o cliente no banco de dados.');
+    } catch (error: any) {
+      // Destrincha o erro para o console mostrar o texto real e não apenas "Object"
+      console.error('Erro ao salvar no banco:', error.message || error, error.details || '');
+      alert(`Não foi possível gravar o cliente no banco de dados. Motivo: ${error.message || 'Erro de autenticação/RLS 401'}`);
     }
   };
 
@@ -172,14 +178,14 @@ export function useClientes() {
         // Se deletou com sucesso no banco, remove do estado visual
         setClientes(prev => prev.filter(c => c.id !== id));
         alert('Cliente removido com sucesso.');
-      } catch (error) {
-        console.error('Erro ao deletar cliente:', error);
+      } catch (error: any) {
+        console.error('Erro ao deletar cliente:', error.message || error);
         alert('Erro ao processar a exclusão.');
       }
     }
   };
 
-  // 4. FILTRAGEM REATIVA (Mantida exatamente como a sua)
+  // 4. FILTRAGEM REATIVA
   const clientesFiltrados = clientes.filter(cliente =>
     cliente.nome.toLowerCase().includes(busca.toLowerCase()) ||
     cliente.email.toLowerCase().includes(busca.toLowerCase()) ||
@@ -190,10 +196,11 @@ export function useClientes() {
   return {
     busca, setBusca,
     modalAberto, setModalAberto,
-    carregando, // Exposto para você poder usar um aviso visual de carregando na tabela
+    carregando,
     nome, setNome,
     tipo, setTipo,
     documento, setDocumento,
+    inscricaoEstadual, setInscricaoEstadual, // Exportado para uso no formulário front-end
     email, setEmail,
     telefone, setTelefone,
     status, setStatus,
