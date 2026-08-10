@@ -1,114 +1,188 @@
 import React from 'react';
 
 interface ItemOrcamento {
-  id: number;
+  id?: number;
   descricao: string;
+  un: string;
+  ncm: string;
   quantidade: number;
   valorUnitario: number;
   total: number;
 }
 
-type StatusOrcamento = 'Pendente' | 'Aprovado' | 'Cancelado';
-
-interface DocumentoProps {
+interface Props {
   clienteNome: string;
   validade: string;
   itens: ItemOrcamento[];
   valorTotalGeral: number;
-  status: StatusOrcamento;
+  status: string;
+  condicaoPagamento?: string;
+  previsaoEntrega?: string;
+  observacao?: string;
+  idEditando: number | null;
 }
 
-export function DocumentoImpressao({ clienteNome, validade, itens = [], valorTotalGeral = 0, status }: DocumentoProps) {
-  
-  const formatarData = (dataString: string) => {
-    if (!dataString) return 'Não informada';
-    try {
-      const data = new Date(`${dataString}T12:00:00`);
-      if (isNaN(data.getTime())) return 'Não informada';
-      return data.toLocaleDateString('pt-BR');
-    } catch {
-      return 'Não informada';
-    }
+export function DocumentoImpressao({
+  clienteNome, validade, itens = [], valorTotalGeral = 0, status,
+  condicaoPagamento = '', previsaoEntrega = '', observacao = '', idEditando
+}: Props) {
+
+  const handleImprimirNativo = () => {
+    const janelaImpressao = window.open('', '_blank');
+    if (!janelaImpressao) return;
+
+    const totalFormatado = valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const numeroOrcamento = idEditando ? `ORC-${String(idEditando).padStart(3, '0')}` : 'NOVO';
+
+    janelaImpressao.document.write(`
+      <html>
+        <head>
+          <title>Orçamento ${numeroOrcamento}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              color: #000;
+              margin: 15mm;
+              font-size: 12px;
+              line-height: 1.5;
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              border-bottom: 2px solid #000;
+              padding-bottom: 15px;
+              margin-bottom: 25px;
+            }
+            .header h2 { margin: 0 0 5px 0; color: #1e3a8a; font-size: 20px; }
+            .header p { margin: 2px 0; color: #374151; }
+            .doc-info { text-align: right; }
+            .doc-info h3 { margin: 0 0 5px 0; font-size: 22px; }
+            .badge-num { display: inline-block; background: #f1f5f9; padding: 4px 12px; font-weight: bold; border-radius: 4px; border: 1px solid #cbd5e1; margin-bottom: 8px; }
+            .section { margin-bottom: 25px; }
+            .section-title { font-weight: bold; font-size: 13px; text-transform: uppercase; background: #f1f5f9; padding: 6px 10px; margin-bottom: 10px; border-left: 4px solid #1e3a8a; }
+            .tabela { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+            .tabela th { background: #f8fafc; border-bottom: 2px solid #cbd5e1; padding: 8px; font-weight: bold; text-transform: uppercase; font-size: 11px; }
+            .tabela td { border-bottom: 1px solid #e2e8f0; padding: 8px; word-wrap: break-word; }
+            .footer-bloco { display: flex; justify-content: space-between; margin-top: 35px; page-break-inside: avoid; }
+            .condicoes { flex: 1; padding-right: 40px; }
+            .obs-box { margin-top: 12px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 4px; }
+            .obs-box p { margin: 4px 0 0 0; white-space: pre-wrap; }
+            .total-box { text-align: right; background: #f1f5f9; padding: 15px 20px; border-radius: 6px; border: 1px solid #cbd5e1; min-width: 200px; align-self: flex-start; }
+            .total-box span { font-size: 11px; font-weight: bold; color: #4b5563; }
+            .total-box h2 { margin: 5px 0 0 0; font-size: 24px; color: #1e3a8a; }
+            .assinaturas { display: flex; justify-content: space-around; margin-top: 80px; page-break-inside: avoid; }
+            .linha-assinatura { text-align: center; width: 220px; }
+            .linha-assinatura .linha { border-bottom: 1px solid #000; margin-bottom: 5px; }
+            @page { size: portrait A4; margin: 15mm; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <h2>Sua Empresa Ltda</h2>
+              <p>CNPJ: 00.000.000/0001-00</p>
+              <p>E-mail: contato@suaempresa.com.br | Telefone: (11) 99999-9999</p>
+              <p>Endereço: Av. Central, 123 - Centro, São Paulo - SP</p>
+            </div>
+            <div class="doc-info">
+              <h3>ORÇAMENTO</h3>
+              <div class="badge-num">${numeroOrcamento}</div>
+              <p><strong>Emissão:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
+              <p><strong>Validade:</strong> ${validade ? new Date(validade + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada'}</p>
+            </div>
+          </div>
+          <div class="section">
+            <div class="section-title">Dados do Cliente</div>
+            <p><strong>Nome / Razão Social:</strong> ${clienteNome || 'Não informado'}</p>
+            <p><strong>Status da Proposta:</strong> ${status}</p>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Itens do Orçamento</div>
+            <table class="tabela">
+              <thead>
+                <tr>
+                  <th align="left">Descrição</th>
+                  <th align="center" style="width: 50px;">UN</th>
+                  <th align="center" style="width: 80px;">NCM</th>
+                  <th align="center" style="width: 50px;">Qtd</th>
+                  <th align="right" style="width: 100px;">Unitário</th>
+                  <th align="right" style="width: 100px;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itens.map(item => `
+                  <tr>
+                    <td>${item.descricao}</td>
+                    <td align="center">${item.un || 'UN'}</td>
+                    <td align="center">${item.ncm || '-'}</td>
+                    <td align="center">${item.quantidade}</td>
+                    <td align="right">${item.valorUnitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    <td align="right" style="font-weight: 600;">${item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="footer-bloco">
+            <div class="condicoes">
+              ${condicaoPagamento ? `<p><strong>Condição de Pagamento:</strong> ${condicaoPagamento}</p>` : ''}
+              ${previsaoEntrega ? `<p><strong>Previsão de Entrega:</strong> ${previsaoEntrega}</p>` : ''}
+              ${observacao ? `
+                <div class="obs-box">
+                  <strong>Observações Gerais:</strong>
+                  <p>${observacao}</p>
+                </div>
+              ` : ''}
+            </div>
+            <div class="total-box">
+              <span>VALOR TOTAL GERAL</span>
+              <h2>${totalFormatado}</h2>
+            </div>
+          </div>
+
+          <div class="assinaturas">
+            <div class="linha-assinatura">
+              <div class="linha"></div>
+              <p>Responsável p/ Empresa</p>
+            </div>
+            <div class="linha-assinatura">
+              <div class="linha"></div>
+              <p>Aceite do Cliente (Assinatura / Data)</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+
+    janelaImpressao.document.close();
+    janelaImpressao.focus();
+    
+    setTimeout(() => {
+      janelaImpressao.print();
+      janelaImpressao.close();
+    }, 250);
   };
 
+  // Retorna o botão visual diretamente
   return (
-    <>
-      {/* Bloco de estilo que força a ocultação de tudo e exibe apenas o PDF ao imprimir */}
-      <style>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #area-impressao-pdf, #area-impressao-pdf * {
-            visibility: visible;
-          }
-          #area-impressao-pdf {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-        }
-      `}</style>
-
-      <div id="area-impressao-pdf" style={{ padding: '40px', fontFamily: 'Arial, sans-serif', color: '#334155', backgroundColor: '#fff' }}>
-        {/* Cabeçalho */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '20px' }}>
-          <div>
-            <h1 style={{ margin: 0, color: '#1e3a8a', fontSize: '28px', letterSpacing: '0.5px' }}>ORÇAMENTO</h1>
-            <p style={{ margin: '6px 0 0 0', fontSize: '14px', color: '#64748b' }}>Data de Emissão: {new Date().toLocaleDateString('pt-BR')}</p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#64748b' }}>Válido até: {formatarData(validade)}</p>
-          </div>
-          <div>
-            <span style={{ 
-              padding: '6px 14px', 
-              borderRadius: '20px', 
-              fontSize: '14px',
-              textTransform: 'uppercase',
-              background: status === 'Aprovado' ? '#dcfce7' : status === 'Cancelado' ? '#fee2e2' : '#fef9c3',
-              color: status === 'Aprovado' ? '#166534' : status === 'Cancelado' ? '#991b1b' : '#854d0e',
-              fontWeight: 'bold'
-            }}>
-              {status}
-            </span>
-          </div>
-        </div>
-
-        {/* Dados do Cliente */}
-        <div style={{ margin: '30px 0', padding: '16px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-          <h3 style={{ margin: '0 0 8px 0', color: '#1e293b', fontSize: '16px' }}>Dados do Cliente</h3>
-          <p style={{ margin: 0, fontSize: '15px' }}><strong>Nome / Razão Social:</strong> {clienteNome || 'Não selecionado'}</p>
-        </div>
-
-        {/* Tabela de Itens */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
-          <thead>
-            <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
-              <th style={{ textAlign: 'left', padding: '12px 10px', fontSize: '14px', color: '#475569' }}>Descrição</th>
-              <th style={{ textAlign: 'center', padding: '12px 10px', width: '80px', fontSize: '14px', color: '#475569' }}>Qtd</th>
-              <th style={{ textAlign: 'right', padding: '12px 10px', width: '120px', fontSize: '14px', color: '#475569' }}>Unitário</th>
-              <th style={{ textAlign: 'right', padding: '12px 10px', width: '120px', fontSize: '14px', color: '#475569' }}>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {itens.map((item) => (
-              <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '12px 10px', fontSize: '14px' }}>{item.descricao}</td>
-                <td style={{ textAlign: 'center', padding: '12px 10px', fontSize: '14px' }}>{item.quantidade}</td>
-                <td style={{ textAlign: 'right', padding: '12px 10px', fontSize: '14px' }}>R$ {item.valorUnitario.toFixed(2)}</td>
-                <td style={{ textAlign: 'right', padding: '12px 10px', fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>R$ {item.total.toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {/* Totalizador */}
-        <div style={{ marginTop: '40px', textAlign: 'right', borderTop: '2px solid #e2e8f0', paddingTop: '20px' }}>
-          <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#1e3a8a' }}>
-            Valor Total Geral: R$ {valorTotalGeral.toFixed(2)}
-          </span>
-        </div>
-      </div>
-    </>
+    <button 
+      type="button" 
+      onClick={handleImprimirNativo} 
+      className="btn-imprimir"
+      disabled={itens.length === 0}
+      style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '8px', 
+        padding: '8px 16px', 
+        cursor: itens.length === 0 ? 'not-allowed' : 'pointer',
+        opacity: itens.length === 0 ? 0.5 : 1
+      }}
+    >
+      <svg xmlns="http://w3.org" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="lucide lucide-printer"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+      Imprimir PDF
+    </button>
   );
 }

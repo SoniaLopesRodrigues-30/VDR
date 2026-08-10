@@ -1,0 +1,191 @@
+/* Oculta a área de impressão na visualização normal da tela do sistema */
+.area-impressao-exclusiva {
+  display: none;
+}
+
+/* 🖨️ CONFIGURAÇÕES EXCLUSIVAS PARA A IMPRESSÃO (Ajustadas contra cortes) */
+@media print {
+  /* 1. RESET ABSOLUTO: Força a ocultação total de QUALQUER outro elemento do sistema */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important; /* Largura exata de uma folha A4 */
+    height: 297mm !important; /* Altura exata de uma folha A4 */
+    overflow: visible !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact !important; /* Garante que cores de fundo saiam na impressão */
+    print-color-adjust: exact !important;
+  }
+
+  /* Garante o sumiço completo da árvore principal da aplicação para não empurrar a folha */
+  #root, .app-container, .main-content, .modal-overlay, .modal-content {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* 2. AREA DE IMPRESSÃO: Posicionamento fixado no ponto zero da folha */
+  .area-impressao-exclusiva {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    margin: 0 !important;
+    /* Reduzimos levemente a área útil interna para dar margem de segurança física à impressora */
+    width: 180mm !important; 
+    padding: 10mm 15mm !important; 
+    box-sizing: border-box !important;
+    font-family: Arial, sans-serif;
+    color: #000 !important;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  /* Define margens padrão diretamente nas propriedades de página do navegador */
+  @page {
+    size: portrait A4;
+    margin: 10mm !important;
+  }
+
+  /* Estrutura do Topo */
+  .print-header {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    width: 100% !important;
+  }
+  .print-empresa-info h2 {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+    color: #1e3a8a;
+  }
+  .print-empresa-info p {
+    margin: 1px 0;
+    color: #374151;
+  }
+  .print-documento-info {
+    text-align: right;
+  }
+  .print-documento-info h3 {
+    margin: 0 0 4px 0;
+    font-size: 20px;
+    letter-spacing: 0.5px;
+  }
+  .print-badge-numero {
+    display: inline-block;
+    background: #f1f5f9;
+    padding: 3px 10px;
+    font-weight: bold;
+    font-size: 13px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    border: 1px solid #cbd5e1;
+  }
+
+  /* Seções de dados */
+  .print-section {
+    margin-bottom: 15px;
+    width: 100% !important;
+  }
+  .print-section-title {
+    font-weight: bold;
+    font-size: 12px;
+    text-transform: uppercase;
+    background: #f1f5f9;
+    padding: 5px 8px;
+    margin-bottom: 8px;
+    border-left: 4px solid #1e3a8a;
+  }
+  .print-grid-cliente {
+    padding: 0 5px;
+  }
+
+  /* Tabela de Itens (Ajustada com tamanho rígido para não vazar lateralmente) */
+  .print-tabela-itens {
+    width: 100% !important;
+    table-layout: fixed !important; /* Impede que colunas expandam sozinhas e cortem */
+    border-collapse: collapse;
+    margin-top: 5px;
+  }
+  .print-tabela-itens th {
+    background: #f8fafc;
+    border-bottom: 2px solid #cbd5e1;
+    padding: 6px 8px;
+    font-weight: bold;
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+  .print-tabela-itens td {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 6px 8px;
+    word-wrap: break-word !important; /* Força quebra de texto na célula se a descrição for gigante */
+  }
+  .print-tabela-itens tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Bloco de Totais e Condições */
+  .print-footer-bloco {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 25px;
+    width: 100% !important;
+    page-break-inside: avoid !important;
+  }
+  .print-condicoes {
+    flex: 1;
+    padding-right: 20px;
+  }
+  .print-obs-box {
+    margin-top: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 6px 10px;
+    border-radius: 4px;
+  }
+  .print-obs-box p {
+    margin: 2px 0 0 0;
+    white-space: pre-wrap;
+  }
+  .print-total-box {
+    text-align: right;
+    background: #f1f5f9;
+    padding: 12px 15px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    min-width: 180px;
+    align-self: flex-start;
+  }
+  .print-total-box span {
+    font-size: 10px;
+    font-weight: bold;
+    color: #4b5563;
+  }
+  .print-total-box h2 {
+    margin: 3px 0 0 0;
+    font-size: 20px;
+    color: #1e3a8a;
+  }
+
+  /* Bloco de Assinaturas */
+  .print-assinaturas {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 55px;
+    width: 100% !important;
+    page-break-inside: avoid !important;
+  }
+  .print-linha-assinatura {
+    text-align: center;
+    width: 200px;
+  }
+  .print-linha-assinatura .linha {
+    border-bottom: 1px solid #000;
+    margin-bottom: 4px;
+  }
+}

@@ -213,24 +213,7 @@ const totalFormatado = typeof valorTotalGeral === 'number' && !isNaN(valorTotalG
           
           {/* BOTÕES DO FOOTER */}
           <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginTop: '24px' }}>
-            <div>
-              <button 
-                type="button" 
-                onClick={handleImprimirNativo} 
-                className="btn-imprimir"
-                disabled={itens.length === 0}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  padding: '8px 16px', 
-                  cursor: itens.length === 0 ? 'not-allowed' : 'pointer',
-                  opacity: itens.length === 0 ? 0.5 : 1
-                }}
-              >
-                <Printer size={16} /> Imprimir PDF
-              </button>
-            </div>
+            
             <div style={{ display: 'flex', gap: '8px' }}>
               <button type="button" onClick={onFechar} className="btn-cancelar">Cancelar</button>
               <button type="submit" className="btn-salvar">
@@ -239,15 +222,19 @@ const totalFormatado = typeof valorTotalGeral === 'number' && !isNaN(valorTotalG
             </div>
           </div>
         </form>
+           <DocumentoImpressao 
+  clienteNome={clienteNome}
+  validade={form.validade}
+  itens={itens}
+  valorTotalGeral={valorTotalGeral}
+  status={form.status}
+  condicaoPagamento={form.condicaoPagamento}
+  previsaoEntrega={form.previsaoEntrega}
+  observacao={form.observacao}
+  idEditando={idEditando}
+/>
 
-        <DocumentoImpressao 
-          clienteNome={clienteNome}
-          validade={form.validade}
-          itens={itens}
-          valorTotalGeral={valorTotalGeral}
-          status={form.status}
-        />
-
+          
       </div>
     </div>
   );
