@@ -1,218 +1,234 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../../services/supabaseClient'; // Importação do cliente
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { supabase } from '../../services/supabaseClient'; 
 
 export interface Endereco {
-  cep: string;
-  logradouro: string;
-  numero: string;
-  bairro: string;
-  cidade: string;
-  uf: string;
-}
+cep: string;
+logradouro: string;
+numero: string;
+bairro: string;
+cidade: string;
+uf: string;
+} 
 
 export interface Cliente {
-  id: number;
-  nome: string;
-  tipo: 'Física' | 'Jurídica';
-  documento: string; 
-  inscricao_estadual?: string | null; // Adicionado à tipagem do front
-  email: string;
-  telefone: string;
-  status: 'Ativo' | 'Inativo';
-  endereco: Endereco;
-}
+id: number;
+nome: string;
+tipo: 'Física' | 'Jurídica';
+documento: string;
+inscricao_estadual?: string | null;
+email: string;
+telefone: string;
+status: 'Ativo' | 'Inativo';
+endereco: Endereco;
+} 
+
+interface FormCliente {
+nome: string;
+tipo: 'Física' | 'Jurídica';
+documento: string;
+inscricaoEstadual: string;
+email: string;
+telefone: string;
+status: 'Ativo' | 'Inativo';
+cep: string;
+logradouro: string;
+numero: string;
+bairro: string;
+cidade: string;
+uf: string;
+} 
+
+const estadoInicialForm: FormCliente = {
+nome: '', tipo: 'Física', documento: '', inscricaoEstadual: '',
+email: '', telefone: '', status: 'Ativo', cep: '',
+logradouro: '', numero: '', bairro: '', city: '', cidade: '', uf: ''
+}; 
 
 export function useClientes() {
-  const [busca, setBusca] = useState('');
-  const [modalAberto, setModalAberto] = useState(false);
-  const [carregando, setCarregando] = useState(true); // Adicionado estado de loading
+const [busca, setBusca] = useState('');
+const [modalAberto, setModalAberto] = useState(false);
+const [carregando, setCarregando] = useState(true);
+const [clientes, setClientes] = useState<Cliente[]>([]);
+const [idEditando, setIdEditando] = useState<number | null>(null);
+const [form, setForm] = useState(estadoInicialForm); 
 
-  // Estados do Formulário (Dados Básicos)
-  const [nome, setNome] = useState('');
-  const [tipo, setTipo] = useState<'Física' | 'Jurídica'>('Física');
-  const [documento, setDocumento] = useState('');
-  const [inscricaoEstadual, setInscricaoEstadual] = useState(''); // Novo Estado Adicionado
-  const [email, setEmail] = useState('');
-  const [telefone, setTelefone] = useState('');
-  const [status, setStatus] = useState<'Ativo' | 'Inativo'>('Ativo');
-  
-  // Estados do Formulário (Endereço)
-  const [cep, setCep] = useState('');
-  const [logradouro, setLogradouro] = useState('');
-  const [numero, setNumero] = useState('');
-  const [bairro, setBairro] = useState('');
-  const [cidade, setCidade] = useState('');
-  const [uf, setUf] = useState('');
-  
-  // Estado real vindo do banco de dados
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+const handleChangeForm = (campo: keyof FormCliente, valor: any) => {
+setForm(prev => ({ ...prev, [campo]: valor }));
+}; 
 
-  // 1. CARREGAR CLIENTES DO POSTGRESQL (SUPABASE)
-  const carregarClientesDoBanco = useCallback(async () => {
-    try {
-      setCarregando(true);
-      const urlLimpa = (supabase as any).supabaseUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
-      (supabase as any).rest.url = `${urlLimpa}/rest/v1`;
+const carregarClientesDoBanco = useCallback(async () => {
+try {
+setCarregando(true);
+const { data, error } = await supabase
+.from('clientes')
+.select('*')
+.order('nome', { ascending: true }); 
 
-      const { data, error } = await supabase
-        .from('clientes')
-        .select('*')
-        .order('nome', { ascending: true });
+if (error) throw error;
 
-      if (error) throw error;
+if (data) {
+const formatados: Cliente[] = data.map((c: any) => ({
+id: c.id,
+nome: c.nome,
+tipo: c.tipo,
+documento: c.documento || '',
+inscricao_estadual: c.inscricao_estadual || '',
+email: c.email || '',
+telefone: c.telefone || '',
+status: c.status,
+endereco: {
+cep: c.cep || '',
+logradouro: c.logradouro || '',
+numero: c.numero || '',
+bairro: c.bairro || '',
+cidade: c.cidade || '',
+uf: c.uf || ''
+}
+}));
+setClientes(formatados);
+}
+} catch (error) {
+console.error('Erro ao buscar clientes no Supabase:', error);
+} finally {
+setCarregando(false);
+}
 
-      if (data) {
-        // Mapeia os dados planos do banco para a estrutura aninhada com o objeto .endereco do seu front
-        const formatados: Cliente[] = data.map((c: any) => ({
-          id: c.id,
-          nome: c.nome,
-          tipo: c.tipo,
-          documento: c.documento || '',
-          inscricao_estadual: c.inscricao_estadual || '',
-          email: c.email || '',
-          telefone: c.telefone || '',
-          status: c.status,
-          endereco: {
-            cep: c.cep || '',
-            logradouro: c.logradouro || '',
-            numero: c.numero || '',
-            bairro: c.bairro || '',
-            cidade: c.cidade || '',
-            uf: c.uf || ''
-          }
-        }));
-        setClientes(formatados);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar clientes no Supabase:', error);
-    } finally {
-      setCarregando(false);
-    }
-  }, []);
+}, []); 
 
-  // Dispara a busca ao carregar o componente
-  useEffect(() => {
-    carregarClientesDoBanco();
-  }, [carregarClientesDoBanco]);
+useEffect(() => {
+carregarClientesDoBanco();
+}, [carregarClientesDoBanco]); 
 
-  const fecharModal = () => {
-    setNome('');
-    setTipo('Física');
-    setDocumento('');
-    setInscricaoEstadual(''); // Limpa o novo campo ao fechar
-    setEmail('');
-    setTelefone('');
-    setStatus('Ativo');
-    setCep('');
-    setLogradouro('');
-    setNumero('');
-    setBairro('');
-    setCidade('');
-    setUf('');
-    setModalAberto(false);
-  };
+const fecharModal = useCallback(() => {
+setForm(estadoInicialForm);
+setIdEditando(null);
+setModalAberto(false);
+}, []); 
 
-  // 2. SALVAR NOVO CLIENTE NO POSTGRESQL
-  const handleSalvarCliente = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nome || !email || !documento) {
-      alert('Por favor, preencha todos os campos obrigatórios (*).');
-      return;
-    }
+const iniciarEdicao = (cliente: Cliente) => {
+setIdEditando(cliente.id);
+setForm({
+nome: cliente.nome,
+tipo: cliente.tipo,
+documento: cliente.documento,
+inscricaoEstadual: cliente.inscricao_estadual || '',
+email: cliente.email,
+telefone: cliente.telefone,
+status: cliente.status,
+cep: cliente.endereco.cep,
+logradouro: cliente.endereco.logradouro,
+numero: cliente.endereco.numero,
+bairro: cliente.endereco.bairro,
+cidade: cliente.endereco.cidade,
+uf: cliente.endereco.uf
+});
+setModalAberto(true);
+}; 
 
-    try {
-      // Como o Postgres é relacional e plano, enviamos os campos na raiz do objeto
-      const { error } = await supabase
-        .from('clientes')
-        .insert([{
-          nome,
-          tipo,
-          documento,
-          inscricao_estadual: tipo === 'Jurídica' ? inscricaoEstadual : null, // Só salva se for jurídica
-          email,
-          telefone,
-          status,
-          cep,
-          logradouro,
-          numero,
-          bairro,
-          cidade,
-          uf
-        }]);
+const handleSalvarCliente = async (e: React.FormEvent) => {
+e.preventDefault();
+if (!form.nome || !form.email || !form.documento) {
+alert('Por favor, preencha todos os campos obrigatórios (*).');
+return;
+} 
 
-      if (error) {
-        if (error.code === '23505') {
-          alert('Este documento (CPF/CNPJ) já está cadastrado no sistema.');
-          return;
-        }
-        throw error; // Se for erro de permissão (401 RLS), vai cair no catch abaixo
-      }
+const payload = {
+nome: form.nome,
+tipo: form.tipo,
+documento: form.documento,
+inscricao_estadual: form.tipo === 'Jurídica' ? form.inscricaoEstadual : null,
+email: form.email,
+telefone: form.telefone,
+status: form.status,
+cep: form.cep,
+logradouro: form.logradouro,
+numero: form.numero,
+bairro: form.bairro,
+cidade: form.cidade,
+uf: form.uf
+};
 
-      fecharModal();
-      await carregarClientesDoBanco(); // Atualiza a lista trazendo o cliente novo da nuvem
-      alert('Cliente gravado com sucesso!');
-    } catch (error: any) {
-      // Destrincha o erro para o console mostrar o texto real e não apenas "Object"
-      console.error('Erro ao salvar no banco:', error.message || error, error.details || '');
-      alert(`Não foi possível gravar o cliente no banco de dados. Motivo: ${error.message || 'Erro de autenticação/RLS 401'}`);
-    }
-  };
+try {
+if (idEditando) {
+const { error } = await supabase
+.from('clientes')
+.update(payload)
+.eq('id', idEditando);
+if (error) throw error;
+alert('Cliente atualizado com sucesso!');
 
-  // 3. EXCLUIR CLIENTE DO BANCO DE DADOS
-  const handleDeletar = async (id: number) => {
-    if (confirm('Tem certeza que deseja excluir este cliente definitivamente?')) {
-      try {
-        const { error } = await supabase
-          .from('clientes')
-          .delete()
-          .eq('id', id);
+} else {
+const { error } = await supabase
+.from('clientes')
+.insert([payload]);
+if (error) {
+  if (error.code === '23505') {
+    alert('Este documento (CPF/CNPJ) já está cadastrado no sistema.');
+    return;
+  }
+  throw error;
+}
+alert('Cliente gravado com sucesso!');
 
-        if (error) {
-          if (error.code === '23503') { // Código do Postgres para violação de chave estrangeira
-            alert('Não é possível excluir este cliente porque ele possui orçamentos ou OS vinculadas a ele.');
-            return;
-          }
-          throw error;
-        }
+}
 
-        // Se deletou com sucesso no banco, remove do estado visual
-        setClientes(prev => prev.filter(c => c.id !== id));
-        alert('Cliente removido com sucesso.');
-      } catch (error: any) {
-        console.error('Erro ao deletar cliente:', error.message || error);
-        alert('Erro ao processar a exclusão.');
-      }
-    }
-  };
+fecharModal();
+await carregarClientesDoBanco();
+} catch (error: any) {
+console.error('Erro ao salvar no banco:', error.message || error);
+alert(`Erro: ${error.message || 'Falha na comunicação com o banco.'}`);
 
-  // 4. FILTRAGEM REATIVA
-  const clientesFiltrados = clientes.filter(cliente =>
-    cliente.nome.toLowerCase().includes(busca.toLowerCase()) ||
-    cliente.email.toLowerCase().includes(busca.toLowerCase()) ||
-    cliente.documento.includes(busca) ||
-    cliente.endereco.cidade.toLowerCase().includes(busca.toLowerCase())
-  );
+}
 
-  return {
-    busca, setBusca,
-    modalAberto, setModalAberto,
-    carregando,
-    nome, setNome,
-    tipo, setTipo,
-    documento, setDocumento,
-    inscricaoEstadual, setInscricaoEstadual, // Exportado para uso no formulário front-end
-    email, setEmail,
-    telefone, setTelefone,
-    status, setStatus,
-    cep, setCep,
-    logradouro, setLogradouro,
-    numero, setNumero,
-    bairro, setBairro,
-    cidade, setCidade,
-    uf, setUf,
-    clientesFiltrados,
-    handleSalvarCliente,
-    handleDeletar,
-    fecharModal
-  };
+}; 
+
+const handleDeletar = async (id: number) => {
+if (!confirm('Tem certeza que deseja excluir este cliente definitivamente?')) return; 
+
+try {
+const { error } = await supabase
+.from('clientes')
+.delete()
+.eq('id', id);
+
+if (error) {
+if (error.code === '23503') {
+alert('Não é possível excluir este cliente porque ele possui registros vinculados.');
+return;
+}
+throw error;
+}
+
+setClientes(prev => prev.filter(c => c.id !== id));
+alert('Cliente removido com sucesso.');
+} catch (error: any) {
+console.error('Erro ao deletar cliente:', error.message || error);
+alert('Erro ao processar a exclusão.');
+}
+
+}; 
+
+const clientesFiltrados = useMemo(() => {
+const termo = busca.toLowerCase().trim();
+if (!termo) return clientes; 
+
+return clientes.filter(cliente =>
+cliente.nome.toLowerCase().includes(termo) ||
+cliente.email.toLowerCase().includes(termo) ||
+cliente.documento.includes(termo) ||
+cliente.endereco.cidade.toLowerCase().includes(termo)
+);
+}, [clientes, busca]); 
+
+return {
+busca, setBusca,
+modalAberto, setModalAberto,
+carregando,
+form, handleChangeForm,
+idEditando, iniciarEdicao,
+clientesFiltrados,
+handleSalvarCliente,
+handleDeletar,
+fecharModal
+};
 }

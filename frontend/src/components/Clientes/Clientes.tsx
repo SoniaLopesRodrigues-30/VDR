@@ -1,19 +1,18 @@
-// Clientes.tsx
 import React from 'react';
 import { Plus, Search, Trash2, Edit, X } from 'lucide-react';
 import { useClientes } from './useClientes';
-import { DadosBasicosForm, EnderecoForm } from './CamposFormulario';
 import './Clientes.css';
 
 export default function Clientes() {
   const {
-    busca, setBusca, modalAberto, setModalAberto,
-    nome, setNome, tipo, setTipo, documento, setDocumento,
-    inscricaoEstadual, setInscricaoEstadual, email, setEmail,
-    telefone, setTelefone, status, setStatus, cep, setCep,
-    logradouro, setLogradouro, numero, setNumero, bairro, setBairro,
-    cidade, setCidade, uf, setUf, clientesFiltrados,
-    handleSalvarCliente, handleDeletar, fecharModal
+    busca, setBusca,
+    modalAberto, setModalAberto,
+    form, handleChangeForm,
+    idEditando, iniciarEdicao,
+    clientesFiltrados,
+    handleSalvarCliente,
+    handleDeletar,
+    fecharModal
   } = useClientes();
 
   return (
@@ -73,8 +72,13 @@ export default function Clientes() {
                   </span>
                 </td>
                 <td className="td-acoes">
-                  <button title="Editar" className="btn-acao-editar"><Edit size={16} /></button>
-                  <button onClick={() => handleDeletar(cliente.id)} title="Excluir" className="btn-acao-excluir"><Trash2 size={16} /></button>
+                  {/* BOTÃO EDITAR INTEGRADO COM INICIAR_EDICAO */}
+                  <button onClick={() => iniciarEdicao(cliente)} title="Editar" className="btn-acao-editar">
+                    <Edit size={16} />
+                  </button>
+                  <button onClick={() => handleDeletar(cliente.id)} title="Excluir" className="btn-acao-excluir">
+                    <Trash2 size={16} />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -86,8 +90,7 @@ export default function Clientes() {
           </tbody>
         </table>
       </div>
-
-      {/* MODAL DE CADASTRO */}
+      {/* MODAL */}
       {modalAberto && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -96,54 +99,199 @@ export default function Clientes() {
               <X size={20} />
             </button>
 
-            <h3 className="modal-title">Cadastrar Novo Cliente</h3>
+            {/* TÍTULO DINÂMICO CONFORME MODO */}
+            <h3 className="modal-title">
+              {idEditando ? 'Editar Cliente' : 'Cadastrar Novo Cliente'}
+            </h3>
 
             <form onSubmit={handleSalvarCliente} className="form-modal">
               
-              {/* SELETOR DE TIPO */}
+              {/* SELETOR DE TIPO (FÍSICA / JURÍDICA) */}
               <div className="form-group">
                 <label className="form-label">Tipo de Pessoa</label>
                 <div className="form-radio-group">
                   <label className="form-radio-label">
-                    <input type="radio" name="tipo" checked={tipo === 'Física'} onChange={() => { setTipo('Física'); setDocumento(''); }} /> Pessoa Física
+                    <input 
+                      type="radio" 
+                      name="tipo" 
+                      checked={form.tipo === 'Física'} 
+                      onChange={() => { handleChangeForm('tipo', 'Física'); handleChangeForm('documento', ''); }} 
+                    /> Pessoa Física
                   </label>
                   <label className="form-radio-label">
-                    <input type="radio" name="tipo" checked={tipo === 'Jurídica'} onChange={() => { setTipo('Jurídica'); setDocumento(''); }} /> Pessoa Jurídica
+                    <input 
+                      type="radio" 
+                      name="tipo" 
+                      checked={form.tipo === 'Jurídica'} 
+                      onChange={() => { handleChangeForm('tipo', 'Jurídica'); handleChangeForm('documento', ''); }} 
+                    /> Pessoa Jurídica                  
                   </label>
                 </div>
               </div>
 
-              {/* BLOCO 1: DADOS BÁSICOS (Subcomponente Organizado) */}
-              <DadosBasicosForm 
-                tipo={tipo} nome={nome} setNome={setNome}
-                documento={documento} setDocumento={setDocumento}
-                inscricaoEstadual={inscricaoEstadual} setInscricaoEstadual={setInscricaoEstadual}
-              />
+              {/* DADOS BÁSICOS */}
+              <div className="form-row">
+                <div className="form-group" style={{ flex: '1 1 240px' }}>
+                  <label className="form-label">
+                    {form.tipo === 'Física' ? 'Nome Completo *' : 'Razão Social *'}
+                  </label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={form.nome} 
+                    onChange={e => handleChangeForm('nome', e.target.value)} 
+                    placeholder={form.tipo === 'Física' ? "Ex: Maria Souza" : "Ex: Minha Empresa Ltda"} 
+                    className="input-padrao" 
+                  />
+                </div>
+
+                <div className="form-group" style={{ flex: '1 1 180px' }}>
+                  <label className="form-label">
+                    {form.tipo === 'Física' ? 'CPF *' : 'CNPJ *'}
+                  </label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={form.documento} 
+                    onChange={e => handleChangeForm('documento', e.target.value)} 
+                    placeholder={form.tipo === 'Física' ? "000.000.000-00" : "00.000.000/0001-00"} 
+                    className="input-padrao" 
+                  />
+                </div>
+              </div>
+
+              {/* EXIBE INSCRIÇÃO ESTADUAL SE FOR PESSOA JURÍDICA */}
+              {form.tipo === 'Jurídica' && (
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: '1 1 100%' }}>
+                    <label className="form-label">Inscrição Estadual</label>
+                    <input 
+                      type="text" 
+                      value={form.inscricaoEstadual} 
+                      onChange={e => handleChangeForm('inscricaoEstadual', e.target.value)} 
+                      placeholder="Isento ou número da IE" 
+                      className="input-padrao" 
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* CONTATOS */}
               <div className="form-row">
-                <div className="form-group form-group-email">
+                <div className="form-group" style={{ flex: '1 1 240px' }}>
                   <label className="form-label">E-mail *</label>
-                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="Ex: maria@email.com" className="input-padrao" />
+                  <input 
+                    type="email" 
+                    required 
+                    value={form.email} 
+                    onChange={e => handleChangeForm('email', e.target.value)} 
+                    placeholder="Ex: maria@email.com" 
+                    className="input-padrao" 
+                  />
                 </div>
-                <div className="form-group form-group-telefone">
+                <div className="form-group" style={{ flex: '1 1 180px' }}>
                   <label className="form-label">Telefone</label>
-                  <input type="text" value={telefone} onChange={e => setTelefone(e.target.value)} placeholder="Ex: (11) 99999-9999" className="input-padrao" />
+                  <input 
+                    type="text" 
+                    value={form.telefone} 
+                    onChange={e => handleChangeForm('telefone', e.target.value)} 
+                    placeholder="Ex: (11) 99999-9999" 
+                    className="input-padrao" 
+                  />
                 </div>
               </div>
 
-              {/* BLOCO 2: ENDEREÇO COMPLETO E STATUS (Subcomponente Organizado) */}
-              <EnderecoForm 
-                cep={cep} setCep={setCep} logradouro={logradouro} setLogradouro={setLogradouro}
-                numero={numero} setNumero={setNumero} bairro={bairro} setBairro={setBairro}
-                cidade={cidade} setCidade={setCidade} uf={uf} setUf={setUf}
-                status={status} setStatus={setStatus}
-              />
+              {/* DIVISOR VISUAL PARA ENDEREÇO */}
+              <div className="divisor-endereco">
+                <span className="label-secao">Endereço do Cliente</span>
+              </div>
+
+              {/* ENDEREÇO LINHA 1 (CEP / LOGRADOURO / NÚMERO) */}
+              <div className="form-row">
+                <div className="form-group flex-cep">
+                  <label className="form-label" style={{ fontSize: '13px' }}>CEP</label>
+                  <input 
+                    type="text" 
+                    value={form.cep} 
+                    onChange={e => handleChangeForm('cep', e.target.value)} 
+                    placeholder="00000-000" 
+                    className="input-padrao" 
+                  />
+                </div>
+                <div className="form-group flex-rua">
+                  <label className="form-label" style={{ fontSize: '13px' }}>Rua / Logradouro</label>
+                  <input 
+                    type="text" 
+                    value={form.logradouro} 
+                    onChange={e => handleChangeForm('logradouro', e.target.value)} 
+                    placeholder="Ex: Av. Central" 
+                    className="input-padrao" 
+                  />
+                </div>
+                <div className="form-group flex-num">
+                  <label className="form-label" style={{ fontSize: '13px' }}>Número</label>
+                  <input 
+                    type="text" 
+                    value={form.numero} 
+                    onChange={e => handleChangeForm('numero', e.target.value)} 
+                    placeholder="Ex: 123" 
+                    className="input-padrao" 
+                  />
+                </div>
+              </div>
+
+              {/* ENDEREÇO LINHA 2 (BAIRRO / CIDADE / UF / STATUS) */}
+              <div className="form-row">
+                <div className="form-group" style={{ flex: '1 1 140px' }}>
+                  <label className="form-label" style={{ fontSize: '13px' }}>Bairro</label>
+                  <input 
+                    type="text" 
+                    value={form.bairro} 
+                    onChange={e => handleChangeForm('bairro', e.target.value)} 
+                    placeholder="Ex: Centro" 
+                    className="input-padrao" 
+                  />
+                </div>
+                <div className="form-group" style={{ flex: '1 1 140px' }}>
+                  <label className="form-label" style={{ fontSize: '13px' }}>Cidade</label>
+                  <input 
+                    type="text" 
+                    value={form.cidade} 
+                    onChange={e => handleChangeForm('cidade', e.target.value)} 
+                    placeholder="Ex: São Paulo" 
+                    className="input-padrao" 
+                  />
+                </div>
+                <div className="form-group" style={{ flex: '0 0 70px' }}>
+                  <label className="form-label" style={{ fontSize: '13px' }}>UF</label>
+                  <input 
+                    type="text" 
+                    maxLength={2} 
+                    value={form.uf} 
+                    onChange={e => handleChangeForm('uf', e.target.value.toUpperCase())} 
+                    placeholder="SP" 
+                    className="input-padrao" 
+                  />
+                </div>
+                <div className="form-group" style={{ flex: '0 0 100px' }}>
+                  <label className="form-label" style={{ fontSize: '13px' }}>Status</label>
+                  <select 
+                    value={form.status} 
+                    onChange={e => handleChangeForm('status', e.target.value as 'Ativo' | 'Inativo')} 
+                    className="input-padrao"
+                  >
+                    <option value="Ativo">Ativo</option>
+                    <option value="Inativo">Inativo</option>
+                  </select>
+                </div>
+              </div>
 
               {/* BOTÕES DO FOOTER */}
-              <div className="modal-actions-footer">
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '24px' }}>
                 <button type="button" onClick={fecharModal} className="btn-cancelar">Cancelar</button>
-                <button type="submit" className="btn-salvar">Salvar Cliente</button>
+                <button type="submit" className="btn-salvar">
+                  {idEditando ? 'Salvar Alterações' : 'Salvar Cliente'}
+                </button>
               </div>
 
             </form>
