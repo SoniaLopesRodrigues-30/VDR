@@ -1,14 +1,16 @@
+// src/components/Orcamentos/ModalOrcamento.tsx
 import React from 'react';
 import { X, Trash2, Printer } from 'lucide-react';
 import { DocumentoImpressao } from './DocumentoImpressao';
 
 interface ItemOrcamento {
-  id: number;
+  id?: number; // Certifique-se de que tem o "?" aqui
   descricao: string;
   quantidade: number;
   valorUnitario: number;
   total: number;
 }
+
 
 type StatusOrcamento = 'Pendente' | 'Aprovado' | 'Cancelado';
 
@@ -46,7 +48,11 @@ export function ModalOrcamento({
 
   const clienteSelecionado = clientesDisponiveis.find(c => c.id === clienteId);
   const clienteNome = clienteSelecionado ? clienteSelecionado.nome : '';
-  const totalFormatado = typeof valorTotalGeral === 'number' ? valorTotalGeral.toFixed(2) : '0.00';
+  
+  // Modificado para formatação nativa de moeda (R$ 1.250,00) em vez de .toFixed(2)
+  const totalFormatado = typeof valorTotalGeral === 'number' 
+    ? valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) 
+    : 'R$ 0,00';
 
   const handleAdicionarItem = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault(); 
@@ -109,16 +115,18 @@ export function ModalOrcamento({
                   </tr>
                 </thead>
                 <tbody>
-                  {itens.map(item => (
-                    <tr key={item.id}>
+                  {itens.map((item, index) => (
+                    // Ajustado o key para usar descrição+index caso o ID do Supabase ainda não exista na criação
+                    <tr key={item.id || `${item.descricao}-${index}`}>
                       <td>{item.descricao}</td>
                       <td align="center">{item.quantidade}</td>
-                      <td align="right">R$ {item.valorUnitario.toFixed(2)}</td>
-                      <td align="right" style={{ fontWeight: '600' }}>R$ {item.total.toFixed(2)}</td>
+                      <td align="right">{item.valorUnitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                      <td align="right" style={{ fontWeight: '600' }}>{item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                       <td align="center">
                         <button 
                           type="button" 
-                          onClick={() => setItens(itens.filter(i => i.id !== item.id))} 
+                          // Filtragem atualizada por descrição para bater com os itens temporários sem ID real
+                          onClick={() => setItens(itens.filter(i => i.descricao !== item.descricao))} 
                           style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
                         >
                           <Trash2 size={14} />
@@ -131,7 +139,7 @@ export function ModalOrcamento({
             )}
           </div>
 
-          <div className="total-bloco">Total do Orçamento: R$ {totalFormatado}</div>
+          <div className="total-bloco">Total do Orçamento: {totalFormatado}</div>
           
           <div className="form-group" style={{ maxWidth: '200px' }}>
             <label className="form-label">Status Inicial</label>
@@ -168,7 +176,6 @@ export function ModalOrcamento({
           </div>
         </form>
 
-        {/* Agora inserido fora de nós ocultados por display:none */}
         <DocumentoImpressao 
           clienteNome={clienteNome}
           validade={validade}

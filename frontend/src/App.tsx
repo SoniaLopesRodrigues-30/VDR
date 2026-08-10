@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { Users, FileText, ClipboardList, Package, LayoutDashboard, Receipt } from 'lucide-react';
-import Clientes from './Clientes';
+import Clientes from './components/Clientes/Clientes';
 import Orcamentos from './components/Orcamentos/Orcamentos'; 
 import Nfe from './Nfe';
 

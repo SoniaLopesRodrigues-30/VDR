@@ -91,6 +91,8 @@ export function useNfeForm({ proximoNumeroSequencial, onEmitir }: UseNfeFormProp
     codigoMunicipio: '4305108',
   });
 
+
+  
   const [dadosFiscais, setDadosFiscais] = useState({
     tipoOperacao: '1 - Saída' as NotaFiscal['tipoOperacao'],
     destinoOperacao: '1 - Operação Interna (Estadual)' as NotaFiscal['destinoOperacao'],

@@ -1,22 +1,14 @@
+// src/components/Orcamentos/TabelaOrcamentos.tsx
 import React from 'react';
 import { FileText, Trash2 } from 'lucide-react';
 
-// Tipagem definida direto aqui dentro para evitar erros de importação de arquivo
-interface ItemOrcamento {
-  id: number;
-  descricao: string;
-  quantidade: number;
-  valorUnitario: number;
-  total: number;
-}
-
+// Interfaces ajustadas exatamente para o que o useOrcamentos.ts entrega
 interface Orcamento {
   id: number;
-  clienteId: number;
+  numero: string; // Adicionado para bater com o padrão 'ORC-001' do seu hook
   clienteNome: string;
-  dataCriacao: string;
+  clienteId: number;
   validade: string;
-  itens: ItemOrcamento[];
   valorTotal: number;
   status: 'Pendente' | 'Aprovado' | 'Cancelado';
 }
@@ -33,7 +25,6 @@ export function TabelaOrcamentos({ orcamentos }: Props) {
           <tr>
             <th>Nº Proposta</th>
             <th>Cliente</th>
-            <th>Data Emissão</th>
             <th>Validade</th>
             <th>Valor Total</th>
             <th>Status</th>
@@ -43,14 +34,21 @@ export function TabelaOrcamentos({ orcamentos }: Props) {
         <tbody>
           {orcamentos.map((orc) => (
             <tr key={orc.id}>
-              <td style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>#{orc.id}</td>
+              {/* Usa a propriedade .numero que geramos de forma bonita no hook */}
+              <td style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{orc.numero}</td>
               <td className="td-cliente">
                 {orc.clienteNome}
-                <span className="span-itens-qtd">{(orc.itens || []).length} item(ns)</span>
               </td>
-              <td>{orc.dataCriacao}</td>
-              <td>{orc.validade ? new Date(orc.validade).toLocaleDateString('pt-BR') : 'Não informada'}</td>
-              <td className="td-valor">R$ {(orc.valorTotal || 0).toFixed(2)}</td>
+              {/* Tratamento da data para evitar fuso horário invertendo o dia */}
+              <td>
+                {orc.validade 
+                  ? new Date(`${orc.validade}T12:00:00`).toLocaleDateString('pt-BR') 
+                  : 'Não informada'}
+              </td>
+              {/* Formatação nativa de moeda brasileira com separador de milhar */}
+              <td className="td-valor">
+                {(orc.valorTotal || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </td>
               <td>
                 <span className={`status-badge ${orc.status === 'Aprovado' ? 'status-aprovado' : orc.status === 'Cancelado' ? 'status-cancelado' : 'status-pendente'}`}>
                   {orc.status}
@@ -63,7 +61,11 @@ export function TabelaOrcamentos({ orcamentos }: Props) {
             </tr>
           ))}
           {orcamentos.length === 0 && (
-            <tr><td colSpan={7} className="tabela-vazia" style={{textAlign: 'center', padding: '32px'}}>Nenhum orçamento gerado.</td></tr>
+            <tr>
+              <td colSpan={6} className="tabela-vazia" style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+                Nenhum orçamento localizado no sistema.
+              </td>
+            </tr>
           )}
         </tbody>
       </table>
