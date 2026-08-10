@@ -1,22 +1,48 @@
 import React from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Trash2, Printer } from 'lucide-react';
 import { useOrcamentos } from './useOrcamentos';
-import { TabelaOrcamentos } from './TabelaOrcamentos';
 import { ModalOrcamento } from './ModalOrcamento';
-import './Orcamentos.css';
+import './Orcamentos.css'; // Certifique-se de ter esse arquivo de estilos criado
 
 export default function Orcamentos() {
-  const hooks = useOrcamentos();
+  const {
+    modalAberto,
+    setModalAberto,
+    busca,
+    setBusca,
+    orcamentosFiltrados,
+    clienteId,
+    setClienteId,
+    clientesDisponiveis,
+    validade,
+    setValidade,
+    descricaoItem,
+    setDescricaoItem,
+    qtdItem,
+    setQtdItem,
+    valorItem,
+    setValorItem,
+    itens,
+    setItens,
+    valorTotalGeral,
+    status,
+    setStatus,
+    onAdicionarItem,
+    fecharModal,
+    handleSalvarOrcamento,
+    carregando
+  } = useOrcamentos();
 
   return (
     <div className="orcamentos-container">
+      
       {/* CABEÇALHO */}
       <div className="header-container">
         <div>
           <h1 className="header-title">Orçamentos</h1>
-          <p className="header-subtitle">Emita, controle e gerencie propostas comerciais.</p>
+          <p className="header-subtitle">Visualize, crie e gerencie as propostas comerciais.</p>
         </div>
-        <button onClick={() => hooks.setModalAberto(true)} className="btn-novo-orcamento">
+        <button onClick={() => setModalAberto(true)} className="btn-novo-orcamento">
           <Plus size={18} /> Novo Orçamento
         </button>
       </div>
@@ -26,38 +52,83 @@ export default function Orcamentos() {
         <Search size={18} color="#94a3b8" />
         <input 
           type="text" 
-          placeholder="Buscar por número ou cliente..." 
-          value={hooks.busca}
-          onChange={(e) => hooks.setBusca(e.target.value)}
+          placeholder="Buscar por número ou nome do cliente..." 
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
           className="busca-input"
         />
       </div>
 
-      {/* TABELA COMPONENTIZADA */}
-      <TabelaOrcamentos orcamentos={hooks.orcamentosFiltrados} />
+      {/* TABELA PRINCIPAL DE LISTAGEM */}
+      <div className="tabela-wrapper">
+        <table className="tabela-orcamentos">
+          <thead>
+            <tr>
+              <th>Número</th>
+              <th>Cliente</th>
+              <th>Validade</th>
+              <th align="right">Valor Total</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {carregando ? (
+              <tr>
+                <td colSpan={5} className="tabela-vazia">Carregando orçamentos do banco...</td>
+              </tr>
+            ) : orcamentosFiltrados.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="tabela-vazia">Nenhum orçamento encontrado.</td>
+              </tr>
+            ) : (
+              orcamentosFiltrados.map((orcamento) => (
+                <tr key={orcamento.id}>
+                  <td className="td-numero" style={{ fontWeight: '600', color: '#2563eb' }}>
+                    {orcamento.numero}
+                  </td>
+                  <td className="td-nome">{orcamento.clienteNome}</td>
+                  <td className="td-texto">
+                    {orcamento.validade 
+                      ? new Date(orcamento.validade + 'T00:00:00').toLocaleDateString('pt-BR') 
+                      : 'Não informada'}
+                  </td>
+                  <td className="td-valor" align="right" style={{ fontWeight: '600' }}>
+                    {orcamento.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </td>
+                  <td>
+                    <span className={`status-badge status-${orcamento.status.toLowerCase()}`}>
+                      {orcamento.status}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      {/* MODAL COMPONENTIZADO */}
-      {hooks.modalAberto && (
-        <ModalOrcamento 
-          onFechar={hooks.fecharModal}
-          onSalvar={hooks.handleSalvarOrcamento}
-          clienteId={hooks.clienteId}
-          setClienteId={hooks.setClienteId}
-          clientesDisponiveis={hooks.clientesDisponiveis}
-          validade={hooks.validade}
-          setValidade={hooks.setValidade}
-          descricaoItem={hooks.descricaoItem}
-          setDescricaoItem={hooks.setDescricaoItem}
-          qtdItem={hooks.qtdItem}
-          setQtdItem={hooks.setQtdItem}
-          valorItem={hooks.valorItem}
-          setValorItem={hooks.setValorItem}
-          onAdicionarItem={hooks.handleAdicionarItem}
-          itens={hooks.itens}
-          setItens={hooks.setItens}
-          valorTotalGeral={hooks.valorTotalGeral}
-          status={hooks.status}
-          setStatus={hooks.setStatus}
+      {/* RENDERIZAÇÃO DO MODAL COM TODAS AS PROPS CONECTADAS */}
+      {modalAberto && (
+        <ModalOrcamento
+          onFechar={fecharModal}
+          onSalvar={handleSalvarOrcamento}
+          clienteId={clienteId}
+          setClienteId={setClienteId}
+          clientesDisponiveis={clientesDisponiveis}
+          validade={validade}
+          setValidade={setValidade}
+          descricaoItem={descricaoItem}
+          setDescricaoItem={setDescricaoItem}
+          qtdItem={qtdItem}
+          setQtdItem={setQtdItem}
+          valorItem={valorItem}
+          setValorItem={setValorItem}
+          onAdicionarItem={onAdicionarItem}
+          itens={itens}
+          setItens={setItens}
+          valorTotalGeral={valorTotalGeral}
+          status={status}
+          setStatus={setStatus}
         />
       )}
     </div>

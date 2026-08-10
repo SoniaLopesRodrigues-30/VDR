@@ -1,16 +1,15 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { supabase } from '../../services/supabaseClient';
 
-// Mantém as mesmas interfaces auto-suficientes que você definiu
-interface ItemOrcamento {
-  id?: number; // Opcional, pois o banco gerará o ID sequencial automaticamente
+export interface ItemOrcamento {
+  id?: number;
   descricao: string;
   quantidade: number;
   valorUnitario: number;
   total: number;
 }
 
-interface Orcamento {
+export interface Orcamento {
   id: number;
   numero: string;
   clienteNome: string;
@@ -46,33 +45,33 @@ export function useOrcamentos() {
     try {
       setCarregando(true);
 
-      // A. Busca Orçamentos fazendo JOIN com a tabela de clientes
+      // Busca Orçamentos fazendo JOIN com a tabela de clientes
       const { data: dataOrcamentos, error: errOrc } = await supabase
         .from('orcamentos')
         .select(`
           id, valor_total, status, validade,
           clientes ( id, nome )
-        `)
-        .order('criado_em', { ascending: false });
+        `);
 
       if (errOrc) throw errOrc;
 
       if (dataOrcamentos) {
-        setOrcamentos(
-          dataOrcamentos.map((o: any) => ({
-            id: o.id,
-            numero: `ORC-${String(o.id).padStart(3, '0')}`, // Usa o ID real do banco formatado
-            clienteId: o.clientes?.id || 0,
-            clienteNome: o.clientes?.nome || 'Cliente Desconhecido',
-            validade: o.validade,
-            valorTotal: Number(o.valor_total),
-            // Mapeia o status do banco para bater com sua tipagem restrita ('Em Análise' vira 'Pendente')
-            status: o.status === 'Em Análise' ? 'Pendente' : o.status
-          }))
-        );
+        const formatados = dataOrcamentos.map((o: any) => ({
+          id: o.id,
+          numero: `ORC-${String(o.id).padStart(3, '0')}`,
+          clienteId: o.clientes?.id || 0,
+          clienteNome: o.clientes?.nome || 'Cliente Desconhecido',
+          validade: o.validade || '',
+          valorTotal: Number(o.valor_total || 0),
+          status: o.status === 'Em Análise' ? 'Pendente' : (o.status || 'Pendente')
+        }));
+        
+        // Ordenação manual simples no front-end para evitar conflitos de colunas
+        formatados.sort((a, b) => b.id - a.id);
+        setOrcamentos(formatados);
       }
 
-      // B. Busca a lista de Clientes reais para preencher o Select do Modal
+      // Busca a lista de Clientes reais para preencher o Select do Modal
       const { data: dataClientes, error: errCli } = await supabase
         .from('clientes')
         .select('id, nome')
@@ -81,8 +80,8 @@ export function useOrcamentos() {
       if (errCli) throw errCli;
       if (dataClientes) setClientesDisponiveis(dataClientes);
 
-    } catch (error) {
-      console.error('Erro ao sincronizar com o Supabase:', error);
+    } catch (error: any) {
+      console.error('Erro ao sincronizar com o Supabase:', error.message || error);
     } finally {
       setCarregando(false);
     }
@@ -93,13 +92,11 @@ export function useOrcamentos() {
     carregarDadosDoBanco();
   }, [carregarDadosDoBanco]);
 
-
   // --- CÁLCULO DINÂMICO DO TOTAL GERAL ---
   const valorTotalGeral = useMemo(() => {
     if (!Array.isArray(itens)) return 0;
     return itens.reduce((acc, item) => acc + (item.total || 0), 0);
   }, [itens]);
-
 
   // --- FILTRAGEM DINÂMICA DA TABELA PRINCIPAL ---
   const orcamentosFiltrados = useMemo(() => {
@@ -111,9 +108,7 @@ export function useOrcamentos() {
     );
   }, [busca, orcamentos]);
 
-
   // --- FUNÇÕES DE MANIPULAÇÃO LÓGICA ---
-
   const handleAdicionarItem = () => {
     if (!descricaoItem.trim()) return;
     const quantidade = Number(qtdItem) || 1;
@@ -127,7 +122,6 @@ export function useOrcamentos() {
     };
 
     setItens(prevItens => [...prevItens, novoItem]);
-
     setDescricaoItem('');
     setQtdItem(1);
     setValorItem(0);
@@ -143,7 +137,6 @@ export function useOrcamentos() {
     setStatus('Pendente');
     setModalAberto(false);
   };
-
   // --- 2. SALVAR DEFINITIVAMENTE NO POSTGRESQL (SUPABASE) ---
   const handleSalvarOrcamento = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,12 +191,12 @@ export function useOrcamentos() {
       }
 
       fecharModal();
-      await carregarDadosDoBanco(); // Atualiza a tela de listagem puxando o dado novo
+      await carregarDadosDoBanco(); // Atualiza a lista na tela
       alert('Orçamento gravado no banco de dados com sucesso!');
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao persistir orçamento:', error);
-      alert('Não foi possível salvar o orçamento no banco de dados.');
+      alert(`Erro ao salvar no banco: ${error.message || 'Verifique a estrutura das tabelas.'}`);
     }
   };
 
@@ -229,9 +222,9 @@ export function useOrcamentos() {
     valorTotalGeral,
     status,
     setStatus,
-    handleAdicionarItem,
+    onAdicionarItem: handleAdicionarItem, // Mapeamento correto para o modal
     fecharModal,
     handleSalvarOrcamento,
-    carregando // Exposto caso queira usar um loading spinner na tabela
+    carregando
   };
 }
