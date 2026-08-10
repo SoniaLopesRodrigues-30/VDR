@@ -17,6 +17,9 @@ export interface Orcamento {
   validade: string;
   valorTotal: number;
   status: 'Pendente' | 'Aprovado' | 'Cancelado';
+  condicaoPagamento: string;
+  previsaoEntrega: string;
+  observacao: string;
 }
 
 export function useOrcamentos() {
@@ -29,13 +32,16 @@ export function useOrcamentos() {
   const [clienteId, setClienteId] = useState<number | ''>('');
   const [validade, setValidade] = useState<string>('');
   const [status, setStatus] = useState<'Pendente' | 'Aprovado' | 'Cancelado'>('Pendente');
+  const [condicaoPagamento, setCondicaoPagamento] = useState<string>('');
+  const [previsaoEntrega, setPrevisaoEntrega] = useState<string>('');
+  const [observacao, setObservacao] = useState<string>('');
 
   // --- ESTADOS DE CRIAÇÃO DINÂMICA DE UM NOVO ITEM ---
   const [descricaoItem, setDescricaoItem] = useState<string>('');
   const [qtdItem, setQtdItem] = useState<number>(1);
   const [valorItem, setValorItem] = useState<number>(0);
 
-  // --- ESTADOS QUE AGORA SÃO ALIMENTADOS PELO SUPABASE ---
+  // --- ESTADOS DE LISTAGENS E ARMAZENAMENTO ---
   const [itens, setItens] = useState<ItemOrcamento[]>([]);
   const [clientesDisponiveis, setClientesDisponiveis] = useState<{ id: number; nome: string }[]>([]);
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
@@ -45,11 +51,11 @@ export function useOrcamentos() {
     try {
       setCarregando(true);
 
-      // Busca Orçamentos fazendo JOIN com a tabela de clientes
+      // Busca Orçamentos fazendo JOIN com a tabela de clientes incluindo as novas colunas
       const { data: dataOrcamentos, error: errOrc } = await supabase
         .from('orcamentos')
         .select(`
-          id, valor_total, status, validade,
+          id, valor_total, status, validade, condicao_pagamento, previsao_entrega, observacao,
           clientes ( id, nome )
         `);
 
@@ -63,15 +69,18 @@ export function useOrcamentos() {
           clienteNome: o.clientes?.nome || 'Cliente Desconhecido',
           validade: o.validade || '',
           valorTotal: Number(o.valor_total || 0),
-          status: o.status === 'Em Análise' ? 'Pendente' : (o.status || 'Pendente')
+          status: o.status === 'Em Análise' ? 'Pendente' : (o.status || 'Pendente'),
+          condicaoPagamento: o.condicao_pagamento || '',
+          previsaoEntrega: o.previsao_entrega || '',
+          observacao: o.observacao || ''
         }));
         
-        // Ordenação manual simples no front-end para evitar conflitos de colunas
+        // Ordena do mais recente para o mais antigo pelo ID
         formatados.sort((a, b) => b.id - a.id);
         setOrcamentos(formatados);
       }
 
-      // Busca a lista de Clientes reais para preencher o Select do Modal
+      // Busca a lista de Clientes para preencher o Select do Modal
       const { data: dataClientes, error: errCli } = await supabase
         .from('clientes')
         .select('id, nome')
@@ -108,7 +117,7 @@ export function useOrcamentos() {
     );
   }, [busca, orcamentos]);
 
-  // --- FUNÇÕES DE MANIPULAÇÃO LÓGICA ---
+  // --- FUNÇÕES DE MANIPULAÇÃO LÓGICA DE ITENS ---
   const handleAdicionarItem = () => {
     if (!descricaoItem.trim()) return;
     const quantidade = Number(qtdItem) || 1;
@@ -127,6 +136,7 @@ export function useOrcamentos() {
     setValorItem(0);
   };
 
+  // --- LIMPAR CAMPOS E FECHAR MODAL ---
   const fecharModal = () => {
     setClienteId('');
     setValidade('');
@@ -135,46 +145,41 @@ export function useOrcamentos() {
     setValorItem(0);
     setItens([]);
     setStatus('Pendente');
+    setCondicaoPagamento('');
+    setPrevisaoEntrega('');
+    setObservacao('');
     setModalAberto(false);
   };
+
   // --- 2. SALVAR DEFINITIVAMENTE NO POSTGRESQL (SUPABASE) ---
   const handleSalvarOrcamento = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (clienteId === '') {
-      alert('Por favor, selecione um cliente.');
-      return;
-    }
-
-    if (!validade) {
-      alert('Por favor, selecione uma data de validade.');
-      return;
-    }
-
-    if (itens.length === 0) {
-      alert('Adicione pelo menos um item para salvar o orçamento.');
-      return;
-    }
+    if (clienteId === '') { alert('Por favor, selecione um cliente.'); return; }
+    if (!validade) { alert('Por favor, selecione uma data de validade.'); return; }
+    if (itens.length === 0) { alert('Adicione pelo menos um item para salvar o orçamento.'); return; }
 
     try {
-      // Converte o status local para o texto esperado pelo banco
       const statusBanco = status === 'Pendente' ? 'Em Análise' : status;
 
-      // Passo A: Insere o registro na tabela pai 'orcamentos'
+      // Passo A: Insere o registro na tabela pai 'orcamentos' com os novos campos
       const { data: novoOrcamento, error: errorOrcamento } = await supabase
         .from('orcamentos')
         .insert([{
           cliente_id: Number(clienteId),
           validade: validade,
           status: statusBanco,
-          valor_total: valorTotalGeral
+          valor_total: valorTotalGeral,
+          condicao_pagamento: condicaoPagamento,
+          previsao_entrega: previsaoEntrega,
+          observacao: observacao
         }])
         .select()
         .single();
 
       if (errorOrcamento) throw errorOrcamento;
 
-      // Passo B: Insere os itens na tabela filha 'itens_orcamento' vinculando ao ID criado
+      // Passo B: Insere os itens vinculando-os na tabela filha 'itens_orcamento'
       if (novoOrcamento) {
         const itensFormatadosParaOBanco = itens.map(item => ({
           orcamento_id: novoOrcamento.id,
@@ -191,7 +196,7 @@ export function useOrcamentos() {
       }
 
       fecharModal();
-      await carregarDadosDoBanco(); // Atualiza a lista na tela
+      await carregarDadosDoBanco(); // Recarrega a tabela principal com os novos dados
       alert('Orçamento gravado no banco de dados com sucesso!');
 
     } catch (error: any) {
@@ -211,6 +216,14 @@ export function useOrcamentos() {
     clientesDisponiveis,
     validade,
     setValidade,
+    status,
+    setStatus,
+    condicaoPagamento,
+    setCondicaoPagamento,
+    previsaoEntrega,
+    setPrevisaoEntrega,
+    observacao,
+    setObservacao,
     descricaoItem,
     setDescricaoItem,
     qtdItem,
@@ -220,9 +233,7 @@ export function useOrcamentos() {
     itens,
     setItens,
     valorTotalGeral,
-    status,
-    setStatus,
-    onAdicionarItem: handleAdicionarItem, // Mapeamento correto para o modal
+    onAdicionarItem: handleAdicionarItem, // Mapeamento correto para evitar erros no Modal
     fecharModal,
     handleSalvarOrcamento,
     carregando

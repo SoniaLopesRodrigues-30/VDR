@@ -1,16 +1,14 @@
-// src/components/Orcamentos/ModalOrcamento.tsx
 import React from 'react';
 import { X, Trash2, Printer } from 'lucide-react';
 import { DocumentoImpressao } from './DocumentoImpressao';
 
 interface ItemOrcamento {
-  id?: number; // Certifique-se de que tem o "?" aqui
+  id?: number;
   descricao: string;
   quantidade: number;
   valorUnitario: number;
   total: number;
 }
-
 
 type StatusOrcamento = 'Pendente' | 'Aprovado' | 'Cancelado';
 
@@ -22,6 +20,12 @@ interface Props {
   clientesDisponiveis: { id: number; nome: string }[];
   validade: string;
   setValidade: (v: string) => void;
+  condicaoPagamento: string;
+  setCondicaoPagamento: (cp: string) => void;
+  previsaoEntrega: string;
+  setPrevisaoEntrega: (pe: string) => void;
+  observacao: string;
+  setObservacao: (obs: string) => void;
   descricaoItem: string;
   setDescricaoItem: (d: string) => void;
   qtdItem: number;
@@ -38,6 +42,7 @@ interface Props {
 
 export function ModalOrcamento({
   onFechar, onSalvar, clienteId, setClienteId, clientesDisponiveis = [], validade, setValidade,
+  condicaoPagamento, setCondicaoPagamento, previsaoEntrega, setPrevisaoEntrega, observacao, setObservacao,
   descricaoItem, setDescricaoItem, qtdItem, setQtdItem, valorItem, setValorItem,
   onAdicionarItem, itens = [], setItens, valorTotalGeral = 0, status = 'Pendente', setStatus
 }: Props) {
@@ -49,7 +54,6 @@ export function ModalOrcamento({
   const clienteSelecionado = clientesDisponiveis.find(c => c.id === clienteId);
   const clienteNome = clienteSelecionado ? clienteSelecionado.nome : '';
   
-  // Modificado para formatação nativa de moeda (R$ 1.250,00) em vez de .toFixed(2)
   const totalFormatado = typeof valorTotalGeral === 'number' 
     ? valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) 
     : 'R$ 0,00';
@@ -69,6 +73,8 @@ export function ModalOrcamento({
         <h3 className="modal-title">Gerar Novo Orçamento</h3>
         
         <form onSubmit={onSalvar} className="form-modal">
+          
+          {/* SELEÇÃO DE CLIENTE E VALIDADE */}
           <div className="form-row">
             <div className="form-group" style={{ flex: '2 1 280px' }}>
               <label className="form-label">Selecionar Cliente *</label>
@@ -85,11 +91,36 @@ export function ModalOrcamento({
               </select>
             </div>
             <div className="form-group" style={{ flex: '1 1 180px' }}>
-              <label className="form-label">Data de Validade</label>
-              <input type="date" value={validade} onChange={e => setValidade(e.target.value)} className="input-padrao" />
+              <label className="form-label">Data de Validade *</label>
+              <input type="date" required value={validade} onChange={e => setValidade(e.target.value)} className="input-padrao" />
             </div>
           </div>
 
+          {/* CONDIÇÃO DE PAGAMENTO E PREVISÃO DE ENTREGA */}
+          <div className="form-row">
+            <div className="form-group" style={{ flex: '1 1 220px' }}>
+              <label className="form-label">Condição de Pagamento</label>
+              <input 
+                type="text" 
+                value={condicaoPagamento} 
+                onChange={e => setCondicaoPagamento(e.target.value)} 
+                placeholder="Ex: À vista, 30 dias, 3x Cartão" 
+                className="input-padrao" 
+              />
+            </div>
+            <div className="form-group" style={{ flex: '1 1 220px' }}>
+              <label className="form-label">Previsão de Entrega</label>
+              <input 
+                type="text" 
+                value={previsaoEntrega} 
+                onChange={e => setPrevisaoEntrega(e.target.value)} 
+                placeholder="Ex: 5 dias úteis, Imediata" 
+                className="input-padrao" 
+              />
+            </div>
+          </div>
+
+          {/* ADICIONAR PRODUTOS / SERVIÇOS */}
           <div className="secao-itens">
             <span className="form-label" style={{ fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>
               Adicionar Produtos / Serviços
@@ -116,7 +147,6 @@ export function ModalOrcamento({
                 </thead>
                 <tbody>
                   {itens.map((item, index) => (
-                    // Ajustado o key para usar descrição+index caso o ID do Supabase ainda não exista na criação
                     <tr key={item.id || `${item.descricao}-${index}`}>
                       <td>{item.descricao}</td>
                       <td align="center">{item.quantidade}</td>
@@ -125,7 +155,6 @@ export function ModalOrcamento({
                       <td align="center">
                         <button 
                           type="button" 
-                          // Filtragem atualizada por descrição para bater com os itens temporários sem ID real
                           onClick={() => setItens(itens.filter(i => i.descricao !== item.descricao))} 
                           style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
                         >
@@ -141,15 +170,29 @@ export function ModalOrcamento({
 
           <div className="total-bloco">Total do Orçamento: {totalFormatado}</div>
           
-          <div className="form-group" style={{ maxWidth: '200px' }}>
-            <label className="form-label">Status Inicial</label>
-            <select value={status} onChange={e => setStatus(e.target.value as StatusOrcamento)} className="input-padrao">
-              <option value="Pendente">Pendente</option>
-              <option value="Aprovado">Aprovado</option>
-              <option value="Cancelado">Cancelado</option>
-            </select>
+          {/* STATUS INICIAL E OBSERVAÇÕES */}
+          <div className="form-row">
+            <div className="form-group" style={{ flex: '1 1 200px' }}>
+              <label className="form-label">Status Inicial</label>
+              <select value={status} onChange={e => setStatus(e.target.value as StatusOrcamento)} className="input-padrao">
+                <option value="Pendente">Pendente</option>
+                <option value="Aprovado">Aprovado</option>
+                <option value="Cancelado">Cancelado</option>
+              </select>
+            </div>
+            <div className="form-group" style={{ flex: '2 1 300px' }}>
+              <label className="form-label">Observações Gerais</label>
+              <textarea 
+                value={observacao} 
+                onChange={e => setObservacao(e.target.value)} 
+                placeholder="Garantia, observações técnicas, dados bancários..." 
+                className="input-padrao"
+                style={{ height: '38px', resize: 'vertical' }}
+              />
+            </div>
           </div>
           
+          {/* BOTÕES DE IMPRESSÃO, CANCELAMENTO E SALVAMENTO */}
           <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginTop: '24px' }}>
             <div>
               <button 
