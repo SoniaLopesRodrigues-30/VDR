@@ -1,4 +1,6 @@
-import { useState, useMemo } from 'react';
+// useOrdemServico.ts
+import { useState, useMemo, useEffect } from 'react';
+import { supabase } from '../../services/supabaseClient'; 
 
 export interface ItemTabela {
   id: number;
@@ -25,9 +27,15 @@ export interface OrdemServico {
   status: StatusOS;
 }
 
+export interface ClienteDisponivel {
+  id: number;
+  nome: string;
+}
+
 export function useOrdemServico() {
   const [modalAberto, setModalAberto] = useState<boolean>(false);
   const [busca, setBusca] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
 
   // Estados dos Campos Fixos da OS
   const [numeroOS, setNumeroOS] = useState<string>('');
@@ -50,46 +58,81 @@ export function useOrdemServico() {
   const [valorPeca, setValorPeca] = useState<number>(0);
   const [pecas, setPecas] = useState<ItemTabela[]>([]);
 
-  // Base Simulada para listagens globais
-  const [clientesDisponiveis] = useState<{ id: number; nome: string }[]>([
-    { id: 1, nome: 'Oficina Mecânica Express' },
-    { id: 2, nome: 'Clínica Dr. Marcos' },
-    { id: 3, nome: 'Condomínio Residencial Central' },
-  ]);
+  // Dados Dinâmicos vindos do Supabase
+  const [clientesDisponiveis, setClientesDisponiveis] = useState<ClienteDisponivel[]>([]);
+  const [ordensServico, setOrdensServico] = useState<OrdemServico[]>([]);
 
-  const [ordensServico, setOrdensServico] = useState<OrdemServico[]>([
-    {
-      id: 1,
-      numero: 'OS-2026-001',
-      clienteId: 1,
-      clienteNome: 'Oficina Mecânica Express',
-      dataAbertura: '2026-07-28',
-      equipamento: 'Ar Condicionado Split 12000 BTUs',
-      defeito: 'Não está resfriando e apresenta ruídos',
-      laudoTecnico: 'Realizada a troca do compressor queimado e carga de gás R-410a.',
-      servicos: [{ id: 11, descricao: 'Mão de obra instalação compressor', quantidade: 1, valorUnitario: 250, total: 250 }],
-      pecas: [{ id: 22, descricao: 'Compressor Rotativo', quantidade: 1, valorUnitario: 480, total: 480 }],
-      valorTotal: 730,
-      status: 'Concluída'
+  // Carregar lista de clientes do banco
+  async function carregarClientes() {
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('id, nome')
+        .order('nome', { ascending: true });
+
+      if (error) throw error;
+      if (data) setClientesDisponiveis(data as ClienteDisponivel[]);
+    } catch (error) {
+      console.error('Erro ao buscar clientes:', error);
     }
-  ]);
+  }
 
-  // Cálculos Combinados Dinâmicos (Evita travamentos de tela branca)
+  // Carregar Ordens de Serviço do banco
+  async function carregarOrdens() {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('ordens_servico')
+        .select('*')
+        .order('id', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        const dadosFormatados: OrdemServico[] = data.map(item => ({
+          id: item.id,
+          numero: item.numero,
+          clienteId: item.cliente_id,
+          clienteNome: item.cliente_name,
+          dataAbertura: item.data_abertura,
+          equipamento: item.equipamento,
+          defeito: item.defeito,
+          laudoTecnico: item.laudo_tecnico,
+          servicos: Array.isArray(item.servicos) ? item.servicos : [],
+          pecas: Array.isArray(item.pecas) ? item.pecas : [],
+          valorTotal: Number(item.valor_total || 0),
+          status: item.status as StatusOS
+        }));
+        setOrdensServico(dadosFormatados);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar OS:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    carregarOrdens();
+    carregarClientes();
+  }, []);
+
+  // Cálculos Combinados Dinâmicos
   const valorTotalServicos = useMemo(() => servicos.reduce((acc, item) => acc + (item.total || 0), 0), [servicos]);
   const valorTotalPecas = useMemo(() => pecas.reduce((acc, item) => acc + (item.total || 0), 0), [pecas]);
   const valorTotalOS = useMemo(() => valorTotalServicos + valorTotalPecas, [valorTotalServicos, valorTotalPecas]);
 
+  // Filtro de Busca Reativo
   const ordensFiltradas = useMemo(() => {
     const termo = busca.toLowerCase().trim();
     if (!termo) return ordensServico;
     return ordensServico.filter(os => 
-      os.numero.toLowerCase().includes(termo) || 
-      os.clienteNome.toLowerCase().includes(termo) ||
-      os.equipamento.toLowerCase().includes(termo)
+      os.numero?.toLowerCase().includes(termo) || 
+      os.clienteNome?.toLowerCase().includes(termo) ||
+      os.equipamento?.toLowerCase().includes(termo)
     );
   }, [busca, ordensServico]);
 
-  // Inserção Dedicada de Serviços
   const handleAdicionarServico = () => {
     if (!descServico.trim()) return;
     const novoServico: ItemTabela = {
@@ -105,7 +148,6 @@ export function useOrdemServico() {
     setValorServico(0);
   };
 
-  // Inserção Dedicada de Peças
   const handleAdicionarPeca = () => {
     if (!descPeca.trim()) return;
     const novaPeca: ItemTabela = {
@@ -122,7 +164,7 @@ export function useOrdemServico() {
   };
 
   const abrirNovoModal = () => {
-    setNumeroOS(`OS-2026-00${ordensServico.length + 1}`);
+    setNumeroOS(`OS-2026-${String(ordensServico.length + 1).padStart(3, '0')}`);
     setDataAbertura(new Date().toISOString().split('T')[0]);
     setModalAberto(true);
   };
@@ -138,7 +180,7 @@ export function useOrdemServico() {
     setModalAberto(false);
   };
 
-  const handleSalvarOS = (e: React.FormEvent) => {
+  const handleSalvarOS = async (e: React.FormEvent) => {
     e.preventDefault();
     if (clienteId === '') {
       alert('Por favor, selecione o cliente.');
@@ -147,55 +189,40 @@ export function useOrdemServico() {
 
     const clienteObj = clientesDisponiveis.find(c => c.id === clienteId);
 
-    const novaOS: OrdemServico = {
-      id: Date.now(),
-      numero: numeroOS,
-      clienteId,
-      clienteNome: clienteObj ? clienteObj.nome : 'Cliente Desconhecido',
-      dataAbertura,
-      equipamento,
-      defeito,
-      laudoTecnico,
-      servicos,
-      pecas,
-      valorTotal: valorTotalOS,
-      status
-    };
+    try {
+      const { error } = await supabase
+        .from('ordens_servico')
+        .insert([{
+          numero: numeroOS,
+          cliente_id: clienteId,
+          cliente_name: clienteObj ? clienteObj.nome : 'Cliente Desconhecido',
+          data_abertura: dataAbertura,
+          equipamento: equipamento,
+          defeito: defeito,
+          laudo_tecnico: laudoTecnico,
+          servicos: servicos, 
+          pecas: pecas,       
+          valor_total: valorTotalOS,
+          status: status
+        }]);
 
-    setOrdensServico(prev => [novaOS, ...prev]);
-    fecharModal();
-    alert('Ordem de Serviço gravada com sucesso!');
+      if (error) throw error;
+
+      fecharModal();
+      alert('Ordem de Serviço gravada com sucesso!');
+      carregarOrdens(); 
+    } catch (error) {
+      console.error('Erro ao salvar OS:', error);
+      alert('Houve um erro técnico ao salvar na nuvem.');
+    }
   };
 
   return {
-    modalAberto,
-    setModalAberto,
-    busca,
-    setBusca,
-    ordensFiltradas,
-    numeroOS,
-    clienteId,
-    setClienteId,
-    clientesDisponiveis,
-    dataAbertura,
-    setDataAbertura,
-    equipamento,
-    setEquipamento,
-    defeito,
-    setDefeito,
-    laudoTecnico,
-    setLaudoTecnico,
-    status,
-    setStatus,
-    // Form de Serviços
-    descServico, setDescServico, qtdServico, setQtdServico, valorServico, setValorServico, servicos, setServicos,
-    // Form de Peças
-    descPeca, setDescPeca, qtdPeca, setQtdPeca, valorPeca, setValorPeca, pecas, setPecas,
-    valorTotalOS,
-    handleAdicionarServico,
-    handleAdicionarPeca,
-    abrirNovoModal,
-    fecharModal,
-    handleSalvarOS
+    modalAberto, setModalAberto, busca, setBusca, ordensFiltradas, numeroOS, clienteId, setClienteId,
+    clientesDisponiveis, dataAbertura, setDataAbertura, equipamento, setEquipamento, defeito, setDefeito,
+    laudoTecnico, setLaudoTecnico, status, setStatus, descServico, setDescServico, qtdServico, setQtdServico,
+    valorServico, setValorServico, servicos, setServicos, descPeca, setDescPeca, qtdPeca, setQtdPeca,
+    valorPeca, setValorPeca, pecas, setPecas, valorTotalOS, handleAdicionarServico, handleAdicionarPeca,
+    abrirNovoModal, fecharModal, handleSalvarOS, loading
   };
 }
