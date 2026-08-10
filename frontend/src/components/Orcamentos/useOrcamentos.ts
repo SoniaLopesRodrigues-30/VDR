@@ -4,6 +4,8 @@ import { supabase } from '../../services/supabaseClient';
 export interface ItemOrcamento {
   id?: number;
   descricao: string;
+  un: string;       
+  ncm: string;      
   quantidade: number;
   valorUnitario: number;
   total: number;
@@ -22,42 +24,47 @@ export interface Orcamento {
   observacao: string;
 }
 
+interface FormOrcamento {
+  clienteId: number | '';
+  validade: string;
+  status: 'Pendente' | 'Aprovado' | 'Cancelado';
+  condicaoPagamento: string;
+  previsaoEntrega: string;
+  observacao: string;
+  descricaoItem: string;
+  unItem: string;
+  ncmItem: string;
+  qtdItem: number;
+  valorItem: number;
+}
+
+const estadoInicialForm: FormOrcamento = {
+  clienteId: '', validade: '', status: 'Pendente', condicaoPagamento: '', previsaoEntrega: '', observacao: '',
+  descricaoItem: '', unItem: 'UN', ncmItem: '', qtdItem: 1, valorItem: 0
+};
+
 export function useOrcamentos() {
-  // --- ESTADOS DO CONTROLADOR DO MODAL, CARREGAMENTO E BUSCA ---
   const [modalAberto, setModalAberto] = useState<boolean>(false);
   const [busca, setBusca] = useState<string>('');
   const [carregando, setCarregando] = useState<boolean>(true);
-
-  // --- ESTADOS DOS CAMPOS DO FORMULÁRIO DE ORÇAMENTO ---
-  const [clienteId, setClienteId] = useState<number | ''>('');
-  const [validade, setValidade] = useState<string>('');
-  const [status, setStatus] = useState<'Pendente' | 'Aprovado' | 'Cancelado'>('Pendente');
-  const [condicaoPagamento, setCondicaoPagamento] = useState<string>('');
-  const [previsaoEntrega, setPrevisaoEntrega] = useState<string>('');
-  const [observacao, setObservacao] = useState<string>('');
-
-  // --- ESTADOS DE CRIAÇÃO DINÂMICA DE UM NOVO ITEM ---
-  const [descricaoItem, setDescricaoItem] = useState<string>('');
-  const [qtdItem, setQtdItem] = useState<number>(1);
-  const [valorItem, setValorItem] = useState<number>(0);
-
-  // --- ESTADOS DE LISTAGENS E ARMAZENAMENTO ---
+  const [idEditando, setIdEditando] = useState<number | null>(null);
   const [itens, setItens] = useState<ItemOrcamento[]>([]);
   const [clientesDisponiveis, setClientesDisponiveis] = useState<{ id: number; nome: string }[]>([]);
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
 
-  // --- 1. CARREGAR DADOS DO POSTGRESQL (SUPABASE) ---
+  // Estado único para o formulário
+  const [form, setForm] = useState<FormOrcamento>(estadoInicialForm);
+
+  const handleChangeForm = (campo: keyof FormOrcamento, valor: any) => {
+    setForm(prev => ({ ...prev, [campo]: valor }));
+  };
+
   const carregarDadosDoBanco = useCallback(async () => {
     try {
       setCarregando(true);
-
-      // Busca Orçamentos fazendo JOIN com a tabela de clientes incluindo as novas colunas
       const { data: dataOrcamentos, error: errOrc } = await supabase
         .from('orcamentos')
-        .select(`
-          id, valor_total, status, validade, condicao_pagamento, previsao_entrega, observacao,
-          clientes ( id, nome )
-        `);
+        .select('id, valor_total, status, validade, condicao_pagamento, previsao_entrega, observacao, clientes ( id, nome )');
 
       if (errOrc) throw errOrc;
 
@@ -74,168 +81,129 @@ export function useOrcamentos() {
           previsaoEntrega: o.previsao_entrega || '',
           observacao: o.observacao || ''
         }));
-        
-        // Ordena do mais recente para o mais antigo pelo ID
-        formatados.sort((a, b) => b.id - a.id);
-        setOrcamentos(formatados);
+        setOrcamentos(formatados.sort((a, b) => b.id - a.id));
       }
 
-      // Busca a lista de Clientes para preencher o Select do Modal
-      const { data: dataClientes, error: errCli } = await supabase
-        .from('clientes')
-        .select('id, nome')
-        .order('nome');
-
-      if (errCli) throw errCli;
+      const { data: dataClientes, error: errCli } = await supabase.from('clientes').select('id, nome').order('nome');
       if (dataClientes) setClientesDisponiveis(dataClientes);
-
     } catch (error: any) {
-      console.error('Erro ao sincronizar com o Supabase:', error.message || error);
+      console.error('Erro ao buscar dados:', error.message);
     } finally {
       setCarregando(false);
     }
   }, []);
 
-  // Executa a busca assim que a tela abre
-  useEffect(() => {
-    carregarDadosDoBanco();
-  }, [carregarDadosDoBanco]);
+  useEffect(() => { carregarDadosDoBanco(); }, [carregarDadosDoBanco]);
 
-  // --- CÁLCULO DINÂMICO DO TOTAL GERAL ---
-  const valorTotalGeral = useMemo(() => {
-    if (!Array.isArray(itens)) return 0;
-    return itens.reduce((acc, item) => acc + (item.total || 0), 0);
-  }, [itens]);
+  const valorTotalGeral = useMemo(() => itens.reduce((acc, item) => acc + (item.total || 0), 0), [itens]);
 
-  // --- FILTRAGEM DINÂMICA DA TABELA PRINCIPAL ---
   const orcamentosFiltrados = useMemo(() => {
     const termo = busca.toLowerCase().trim();
-    if (!termo) return orcamentos;
-    return orcamentos.filter(o => 
-      o.numero.toLowerCase().includes(termo) || 
-      o.clienteNome.toLowerCase().includes(termo)
-    );
+    return termo ? orcamentos.filter(o => o.numero.toLowerCase().includes(termo) || o.clienteNome.toLowerCase().includes(termo)) : orcamentos;
   }, [busca, orcamentos]);
 
-  // --- FUNÇÕES DE MANIPULAÇÃO LÓGICA DE ITENS ---
   const handleAdicionarItem = () => {
-    if (!descricaoItem.trim()) return;
-    const quantidade = Number(qtdItem) || 1;
-    const valorUnitario = Number(valorItem) || 0;
-
+    if (!form.descricaoItem.trim()) return;
     const novoItem: ItemOrcamento = {
-      descricao: descricaoItem.trim(),
-      quantidade,
-      valorUnitario,
-      total: quantidade * valorUnitario
+      descricao: form.descricaoItem.trim(),
+      un: form.unItem.trim() || 'UN',
+      ncm: form.ncmItem.trim(),
+      quantidade: Number(form.qtdItem) || 1,
+      valorUnitario: Number(form.valorItem) || 0,
+      total: (Number(form.qtdItem) || 1) * (Number(form.valorItem) || 0)
     };
-
-    setItens(prevItens => [...prevItens, novoItem]);
-    setDescricaoItem('');
-    setQtdItem(1);
-    setValorItem(0);
+    setItens(prev => [...prev, novoItem]);
+    setForm(prev => ({ ...prev, descricaoItem: '', unItem: 'UN', ncmItem: '', qtdItem: 1, valorItem: 0 }));
   };
 
-  // --- LIMPAR CAMPOS E FECHAR MODAL ---
+  const iniciarEdicao = useCallback(async (orcamento: Orcamento) => {
+    setIdEditando(orcamento.id);
+    setForm({
+      clienteId: orcamento.clienteId, validade: orcamento.validade, status: orcamento.status,
+      condicaoPagamento: orcamento.condicaoPagamento, previsaoEntrega: orcamento.previsaoEntrega, observacao: orcamento.observacao,
+      descricaoItem: '', unItem: 'UN', ncmItem: '', qtdItem: 1, valorItem: 0
+    });
+
+    try {
+      const { data: dadosItens, error: errItens } = await supabase.from('itens_orcamento').select('*').eq('orcamento_id', orcamento.id);
+      if (errItens) throw errItens;
+      if (dadosItens) {
+        setItens(dadosItens.map((item: any) => ({
+          id: item.id, descricao: item.descricao, un: item.un || 'UN', ncm: item.ncm || '',
+          quantidade: Number(item.quantidade), valorUnitario: Number(item.valor_unitario),
+          total: Number(item.quantidade) * Number(item.valor_unitario)
+        })));
+      }
+      setModalAberto(true);
+    } catch (error: any) {
+      console.error(error.message);
+    }
+  }, []);
+
   const fecharModal = () => {
-    setClienteId('');
-    setValidade('');
-    setDescricaoItem('');
-    setQtdItem(1);
-    setValorItem(0);
+    setForm(estadoInicialForm);
     setItens([]);
-    setStatus('Pendente');
-    setCondicaoPagamento('');
-    setPrevisaoEntrega('');
-    setObservacao('');
+    setIdEditando(null);
     setModalAberto(false);
   };
 
-  // --- 2. SALVAR DEFINITIVAMENTE NO POSTGRESQL (SUPABASE) ---
   const handleSalvarOrcamento = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (clienteId === '') { alert('Por favor, selecione um cliente.'); return; }
-    if (!validade) { alert('Por favor, selecione uma data de validade.'); return; }
-    if (itens.length === 0) { alert('Adicione pelo menos um item para salvar o orçamento.'); return; }
+    if (form.clienteId === '' || !form.validade || itens.length === 0) {
+      alert('Preencha os campos obrigatórios e adicione itens.');
+      return;
+    }
 
     try {
-      const statusBanco = status === 'Pendente' ? 'Em Análise' : status;
+      const payloadPai = {
+        cliente_id: Number(form.clienteId), validade: form.validade,
+        status: form.status === 'Pendente' ? 'Em Análise' : form.status,
+        valor_total: valorTotalGeral, condicao_pagamento: form.condicaoPagamento,
+        previsao_entrega: form.previsaoEntrega, observacao: form.observacao
+      };
 
-      // Passo A: Insere o registro na tabela pai 'orcamentos' com os novos campos
-      const { data: novoOrcamento, error: errorOrcamento } = await supabase
-        .from('orcamentos')
-        .insert([{
-          cliente_id: Number(clienteId),
-          validade: validade,
-          status: statusBanco,
-          valor_total: valorTotalGeral,
-          condicao_pagamento: condicaoPagamento,
-          previsao_entrega: previsaoEntrega,
-          observacao: observacao
-        }])
-        .select()
-        .single();
+      let orcamentoId = idEditando;
 
-      if (errorOrcamento) throw errorOrcamento;
+      if (idEditando) {
+        await supabase.from('orcamentos').update(payloadPai).eq('id', idEditando);
+        await supabase.from('itens_orcamento').delete().eq('orcamento_id', idEditando);
+      } else {
+        const { data: novo, error: err } = await supabase.from('orcamentos').insert([payloadPai]).select().single();
+        if (err) throw err;
+        if (novo) orcamentoId = novo.id;
+      }
 
-      // Passo B: Insere os itens vinculando-os na tabela filha 'itens_orcamento'
-      if (novoOrcamento) {
-        const itensFormatadosParaOBanco = itens.map(item => ({
-          orcamento_id: novoOrcamento.id,
-          descricao: item.descricao,
-          quantidade: item.quantidade,
-          valor_unitario: item.valorUnitario
+      if (orcamentoId) {
+        const filhos = itens.map(item => ({
+          orcamento_id: orcamentoId, descricao: item.descricao, un: item.un,
+          ncm: item.ncm, quantidade: item.quantidade, valor_unitario: item.valorUnitario
         }));
-
-        const { error: errorItens } = await supabase
-          .from('itens_orcamento')
-          .insert(itensFormatadosParaOBanco);
-
-        if (errorItens) throw errorItens;
+        await supabase.from('itens_orcamento').insert(filhos);
       }
 
       fecharModal();
-      await carregarDadosDoBanco(); // Recarrega a tabela principal com os novos dados
-      alert('Orçamento gravado no banco de dados com sucesso!');
-
+      await carregarDadosDoBanco();
+      alert('Salvo com sucesso!');
     } catch (error: any) {
-      console.error('Erro ao persistir orçamento:', error);
-      alert(`Erro ao salvar no banco: ${error.message || 'Verifique a estrutura das tabelas.'}`);
+      alert(`Erro: ${error.message}`);
     }
   };
 
+  const handleDeletarOrcamento = useCallback(async (id: number) => {
+    if (!confirm('Excluir orçamento definitivamente?')) return;
+    try {
+      await supabase.from('itens_orcamento').delete().eq('orcamento_id', id);
+      await supabase.from('orcamentos').delete().eq('id', id);
+      setOrcamentos(prev => prev.filter(o => o.id !== id));
+    } catch (error: any) {
+      console.error(error.message);
+    }
+  }, []);
+
   return {
-    modalAberto,
-    setModalAberto,
-    busca,
-    setBusca,
-    orcamentosFiltrados,
-    clienteId,
-    setClienteId,
-    clientesDisponiveis,
-    validade,
-    setValidade,
-    status,
-    setStatus,
-    condicaoPagamento,
-    setCondicaoPagamento,
-    previsaoEntrega,
-    setPrevisaoEntrega,
-    observacao,
-    setObservacao,
-    descricaoItem,
-    setDescricaoItem,
-    qtdItem,
-    setQtdItem,
-    valorItem,
-    setValorItem,
-    itens,
-    setItens,
-    valorTotalGeral,
-    onAdicionarItem: handleAdicionarItem, // Mapeamento correto para evitar erros no Modal
-    fecharModal,
-    handleSalvarOrcamento,
-    carregando
+    modalAberto, setModalAberto, busca, setBusca, orcamentosFiltrados,
+    clientesDisponiveis, itens, setItens, valorTotalGeral, form, handleChangeForm,
+    onAdicionarItem: handleAdicionarItem, fecharModal, handleSalvarOrcamento, carregando,
+    idEditando, iniciarEdicao, handleDeletarOrcamento 
   };
 }

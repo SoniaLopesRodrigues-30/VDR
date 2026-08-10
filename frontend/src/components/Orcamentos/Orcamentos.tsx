@@ -1,8 +1,8 @@
 import React from 'react';
-import { Plus, Search, Trash2, Printer } from 'lucide-react';
+import { Plus, Search, Trash2, Edit } from 'lucide-react';
 import { useOrcamentos } from './useOrcamentos';
 import { ModalOrcamento } from './ModalOrcamento';
-import './Orcamentos.css'; // Certifique-se de ter esse arquivo de estilos criado
+import './Orcamentos.css'; 
 
 export default function Orcamentos() {
   const {
@@ -11,26 +11,19 @@ export default function Orcamentos() {
     busca,
     setBusca,
     orcamentosFiltrados,
-    clienteId,
-    setClienteId,
     clientesDisponiveis,
-    validade,
-    setValidade,
-    descricaoItem,
-    setDescricaoItem,
-    qtdItem,
-    setQtdItem,
-    valorItem,
-    setValorItem,
     itens,
     setItens,
     valorTotalGeral,
-    status,
-    setStatus,
+    form,
+    handleChangeForm,
     onAdicionarItem,
     fecharModal,
     handleSalvarOrcamento,
-    carregando
+    carregando,
+    idEditando,          
+    iniciarEdicao,       
+    handleDeletarOrcamento 
   } = useOrcamentos();
 
   return (
@@ -69,16 +62,17 @@ export default function Orcamentos() {
               <th>Validade</th>
               <th align="right">Valor Total</th>
               <th>Status</th>
+              <th style={{ textAlign: 'center' }}>Ações</th>
             </tr>
           </thead>
           <tbody>
             {carregando ? (
               <tr>
-                <td colSpan={5} className="tabela-vazia">Carregando orçamentos do banco...</td>
+                <td colSpan={6} className="tabela-vazia">Carregando orçamentos do banco...</td>
               </tr>
             ) : orcamentosFiltrados.length === 0 ? (
               <tr>
-                <td colSpan={5} className="tabela-vazia">Nenhum orçamento encontrado.</td>
+                <td colSpan={6} className="tabela-vazia">Nenhum orçamento encontrado.</td>
               </tr>
             ) : (
               orcamentosFiltrados.map((orcamento) => (
@@ -100,6 +94,14 @@ export default function Orcamentos() {
                       {orcamento.status}
                     </span>
                   </td>
+                  <td className="td-acoes" style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                    <button onClick={() => iniciarEdicao(orcamento)} title="Editar" className="btn-acao-editar" style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer' }}>
+                      <Edit size={16} />
+                    </button>
+                    <button onClick={() => handleDeletarOrcamento(orcamento.id)} title="Excluir" className="btn-acao-excluir" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
@@ -107,28 +109,19 @@ export default function Orcamentos() {
         </table>
       </div>
 
-      {/* RENDERIZAÇÃO DO MODAL COM TODAS AS PROPS CONECTADAS */}
+      {/* RENDERIZAÇÃO DO MODAL */}
       {modalAberto && (
         <ModalOrcamento
           onFechar={fecharModal}
           onSalvar={handleSalvarOrcamento}
-          clienteId={clienteId}
-          setClienteId={setClienteId}
           clientesDisponiveis={clientesDisponiveis}
-          validade={validade}
-          setValidade={setValidade}
-          descricaoItem={descricaoItem}
-          setDescricaoItem={setDescricaoItem}
-          qtdItem={qtdItem}
-          setQtdItem={setQtdItem}
-          valorItem={valorItem}
-          setValorItem={setValorItem}
-          onAdicionarItem={onAdicionarItem}
           itens={itens}
           setItens={setItens}
           valorTotalGeral={valorTotalGeral}
-          status={status}
-          setStatus={setStatus}
+          form={form}
+          handleChangeForm={handleChangeForm}
+          onAdicionarItem={onAdicionarItem}
+          idEditando={idEditando}
         />
       )}
     </div>
