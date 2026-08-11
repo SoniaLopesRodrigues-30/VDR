@@ -1,15 +1,16 @@
 // src/App.tsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Users, FileText, ClipboardList, Package, LayoutDashboard, Receipt, DollarSign } from 'lucide-react';
+import { Users, FileText, ClipboardList, Package, LayoutDashboard, Receipt, DollarSign, BarChart3 } from 'lucide-react';
 
 import Clientes from './components/Clientes/Clientes';
 import Orcamentos from './components/Orcamentos/Orcamentos'; 
 import Nfe from './Nfe';
 import { OrdensServico } from "./components/OrdServ/OrdensServico";
-
-// IMPORTAÇÃO DO NOVO COMPONENTE ISOLADO
 import FluxoCaixa from './components/FluxoCaixa/FluxoCaixa';
+
+// IMPORTAÇÃO DA NOVA CENTRAL DE RELATÓRIOS SEPARADA
+import Relatorios from './components/Relatorios/Relatorios';
 
 // IMPORTAÇÃO DOS ESTILOS ESTRUTURAIS DO APP
 import * as S from './App.styles';
@@ -52,6 +53,9 @@ export default function App() {
           <MenuLink to="/nfe"><Receipt size={20} /> Nota Fiscal (NF-e)</MenuLink>
           <MenuLink to="/fluxo-caixa"><DollarSign size={20} /> Fluxo de Caixa</MenuLink>
           
+          {/* BOTÃO DO MENU ADICIONADO AQUI */}
+          <MenuLink to="/relatorios"><BarChart3 size={20} /> Relatórios</MenuLink>
+          
           <div style={S.footerStyle}>v1.0.0 (2026)</div>
         </nav>
 
@@ -65,6 +69,9 @@ export default function App() {
             <Route path="/ordens" element={<OrdensServico />} />
             <Route path="/nfe" element={<Nfe />} />
             <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
+            
+            {/* ROTA DA TELA DE RELATÓRIOS ADICIONADA AQUI */}
+            <Route path="/relatorios" element={<Relatorios />} />
           </Routes>
         </main>
 
