@@ -9,6 +9,9 @@ import Nfe from './Nfe';
 import { OrdensServico } from "./components/OrdServ/OrdensServico";
 import FluxoCaixa from './components/FluxoCaixa/FluxoCaixa';
 
+// IMPORTAÇÃO CORRETA DO COMPONENTE REAL DE PRODUTOS
+import Produtos from './components/Produtos/Produtos';
+
 // IMPORTAÇÃO DA NOVA CENTRAL DE RELATÓRIOS SEPARADA
 import Relatorios from './components/Relatorios/Relatorios';
 
@@ -16,7 +19,6 @@ import Relatorios from './components/Relatorios/Relatorios';
 import * as S from './App.styles';
 
 const Dashboard = () => <div style={{ padding: '24px' }}><h2>📊 Painel Geral (Dashboard)</h2></div>;
-const Produtos = () => <div style={{ padding: '24px' }}><h2>📦 Cadastro de Produtos</h2></div>;
 
 function MenuLink({ to, children }: { to: string; children: React.ReactNode }) {
   const location = useLocation();
@@ -52,8 +54,6 @@ export default function App() {
           <MenuLink to="/ordens"><ClipboardList size={20} /> Ordens de Serviço</MenuLink>
           <MenuLink to="/nfe"><Receipt size={20} /> Nota Fiscal (NF-e)</MenuLink>
           <MenuLink to="/fluxo-caixa"><DollarSign size={20} /> Fluxo de Caixa</MenuLink>
-          
-          {/* BOTÃO DO MENU ADICIONADO AQUI */}
           <MenuLink to="/relatorios"><BarChart3 size={20} /> Relatórios</MenuLink>
           
           <div style={S.footerStyle}>v1.0.0 (2026)</div>
@@ -69,8 +69,6 @@ export default function App() {
             <Route path="/ordens" element={<OrdensServico />} />
             <Route path="/nfe" element={<Nfe />} />
             <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
-            
-            {/* ROTA DA TELA DE RELATÓRIOS ADICIONADA AQUI */}
             <Route path="/relatorios" element={<Relatorios />} />
           </Routes>
         </main>
