@@ -2,6 +2,35 @@ import React from 'react';
 import { X, Trash2, Printer } from 'lucide-react';
 import { DocumentoImpressao } from './DocumentoImpressao';
 
+import logoLocalOrcamento from '../../assets/logo.png'; 
+
+export function TelaDeOrcamentos() {
+  // Exemplo de dados do orçamento controlado pelo seu estado/banco
+  const dadosOrcamento = {
+    clienteNome: "João da Silva",
+    validade: "2026-12-31",
+    itens: [
+      { id: 1, descricao: "Serviço de Manutenção", un: "UN", ncm: "8471", quantidade: 1, valorUnitario: 250, total: 250 }
+    ],
+    valorTotalGeral: 250,
+    status: "Aprovado",
+    idEditando: 12
+  };
+
+  return (
+    <div style={{ padding: '20px' }}>
+      {/* ... outros elementos da sua página de orçamentos ... */}
+
+      {/* ========================================================================= */}
+      {/* 2. PROPRIEDADE: Passe a imagem local importada direto no atributo logoUrl   */}
+      {/* ========================================================================= */}
+    </div>
+  );
+}
+
+
+
+
 interface ItemOrcamento {
   id?: number;
   descricao: string;
@@ -223,17 +252,17 @@ const totalFormatado = typeof valorTotalGeral === 'number' && !isNaN(valorTotalG
           </div>
         </form>
            <DocumentoImpressao 
-  clienteNome={clienteNome}
-  validade={form.validade}
-  itens={itens}
-  valorTotalGeral={valorTotalGeral}
-  status={form.status}
-  condicaoPagamento={form.condicaoPagamento}
-  previsaoEntrega={form.previsaoEntrega}
-  observacao={form.observacao}
-  idEditando={idEditando}
-/>
-
+              clienteNome={clienteNome}
+              validade={form.validade}
+              itens={itens}
+              valorTotalGeral={valorTotalGeral}
+              status={form.status}
+              condicaoPagamento={form.condicaoPagamento}
+              previsaoEntrega={form.previsaoEntrega}
+              observacao={form.observacao}
+              idEditando={idEditando}
+              logoUrl={logoLocalOrcamento} 
+            />
           
       </div>
     </div>

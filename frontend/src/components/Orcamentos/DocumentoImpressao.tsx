@@ -1,3 +1,4 @@
+// DocumentoImpressao.tsx
 import React from 'react';
 
 interface ItemOrcamento {
@@ -20,19 +21,28 @@ interface Props {
   previsaoEntrega?: string;
   observacao?: string;
   idEditando: number | null;
+  logoUrl?: string; // Propriedade que receberá a imagem local importada
 }
 
 export function DocumentoImpressao({
   clienteNome, validade, itens = [], valorTotalGeral = 0, status,
-  condicaoPagamento = '', previsaoEntrega = '', observacao = '', idEditando
+  condicaoPagamento = '', previsaoEntrega = '', observacao = '', idEditando, logoUrl
 }: Props) {
 
   const handleImprimirNativo = () => {
     const janelaImpressao = window.open('', '_blank');
-    if (!janelaImpressao) return;
+    if (!janelaImpressao) {
+      alert('Por favor, permita pop-ups para abrir a folha de impressão.');
+      return;
+    }
 
     const totalFormatado = valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const numeroOrcamento = idEditando ? `ORC-${String(idEditando).padStart(3, '0')}` : 'NOVO';
+
+    // Gera o HTML da imagem apenas se a propriedade for enviada
+    const logoHtml = logoUrl 
+      ? `<img src="${logoUrl}" alt="Logo Empresa" style="max-height: 60px; max-width: 220px; object-fit: contain; margin-bottom: 12px; display: block;" />`
+      : '';
 
     janelaImpressao.document.write(`
       <html>
@@ -49,6 +59,7 @@ export function DocumentoImpressao({
             .header {
               display: flex;
               justify-content: space-between;
+              align-items: flex-start;
               border-bottom: 2px solid #000;
               padding-bottom: 15px;
               margin-bottom: 25px;
@@ -79,6 +90,7 @@ export function DocumentoImpressao({
         <body>
           <div class="header">
             <div>
+              ${logoHtml}
               <h2>Sua Empresa Ltda</h2>
               <p>CNPJ: 00.000.000/0001-00</p>
               <p>E-mail: contato@suaempresa.com.br | Telefone: (11) 99999-9999</p>
@@ -91,6 +103,7 @@ export function DocumentoImpressao({
               <p><strong>Validade:</strong> ${validade ? new Date(validade + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada'}</p>
             </div>
           </div>
+          
           <div class="section">
             <div class="section-title">Dados do Cliente</div>
             <p><strong>Nome / Razão Social:</strong> ${clienteNome || 'Não informado'}</p>
@@ -159,13 +172,13 @@ export function DocumentoImpressao({
     janelaImpressao.document.close();
     janelaImpressao.focus();
     
+    // Pequeno atraso para o motor do navegador ler e embutir a imagem local antes do print
     setTimeout(() => {
       janelaImpressao.print();
       janelaImpressao.close();
-    }, 250);
+    }, 500);
   };
 
-  // Retorna o botão visual diretamente
   return (
     <button 
       type="button" 
@@ -181,7 +194,11 @@ export function DocumentoImpressao({
         opacity: itens.length === 0 ? 0.5 : 1
       }}
     >
-      <svg xmlns="http://w3.org" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="lucide lucide-printer"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+      <svg xmlns="http://w3.org" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-printer">
+        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+        <path d="M6 9V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/>
+        <rect x="6" y="14" width="12" height="8" rx="1"/>
+      </svg>
       Imprimir PDF
     </button>
   );
