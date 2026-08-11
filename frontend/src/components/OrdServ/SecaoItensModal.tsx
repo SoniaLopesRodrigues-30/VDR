@@ -4,28 +4,43 @@ import React from 'react';
 export function SecaoItensModal({ props }: { props: any }) {
   return (
     <>
-      {/* SEÇÃO DE SERVIÇOS (MANTIDA) */}
+      {/* SELETOR DE TIPO DE ORDEM DE SERVIÇO */}
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>
+          Tipo da Ordem de Serviço
+        </label>
+        <select 
+          value={props.form.tipoOs} 
+          onChange={(e) => props.updateField('tipoOs', e.target.value)} 
+          style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#fff', color: '#334155' }}
+        >
+          <option value="ambos">Ambos (Serviços e Produtos)</option>
+          <option value="mao_de_obra">Apenas Serviços / Mão de Obra</option>
+          <option value="produtos">Apenas Produtos</option>
+        </select>
+      </div>
+
+      {/* SEÇÃO DE SERVIÇOS  */}
       {props.tipoOs !== 'produtos' && (
         <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '14px', marginBottom: '14px' }}>
-          <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#0284c7', display: 'block', marginBottom: '8px' }}>Serviços / Mão de Obra</span>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-            <input type="text" placeholder="Ex: Alinhamento técnico" value={props.descServico} onChange={(e) => props.setDescServico(e.target.value)} style={{ flex: 2, padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
-            <input type="number" placeholder="Qtd" value={props.qtdServico} onChange={(e) => props.setQtdServico(Number(e.target.value))} style={{ width: '60px', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
-            <input type="number" placeholder="R$" value={props.valorServico} onChange={(e) => props.setValorServico(Number(e.target.value))} style={{ width: '90px', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
-            <button type="button" onClick={props.handleAdicionarServico} style={{ padding: '6px 12px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>+</button>
-          </div>
+                    
           {props.servicos.map((s: any) => (
             <div key={s.id} style={{ fontSize: '13px', color: '#475569', padding: '2px 0' }}>
               • {s.descricao} ({s.quantidade}x) - R$ {s.total.toFixed(2)}
             </div>
           ))}
+
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+  
+          </div>
+
         </div>
       )}
 
       {/* NOVA SEÇÃO DE PRODUTOS COMPLETA */}
       {props.tipoOs !== 'mao_de_obra' && (
         <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '14px', marginBottom: '20px' }}>
-          <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#b45309', display: 'block', marginBottom: '8px' }}>Produtos / Peças Aplicadas</span>
+          <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#b45309', display: 'block', marginBottom: '8px' }}>Produtos/Serviços</span>
           
           {/* Formulário de Inserção em Grade para não poluir o layout */}
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>

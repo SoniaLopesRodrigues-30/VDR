@@ -10,10 +10,12 @@ export const gerarImpressaoOS = (
 
   const coresStatus = obterEstiloStatus(os.status);
 
+  // Formata a data antes para evitar conflitos de compilação
   const dataFormatada = os.dataAbertura 
     ? new Date(os.dataAbertura + 'T12:00:00').toLocaleDateString('pt-BR') 
     : '--';
 
+  // Monta a listagem de serviços executados
   const servicosHtml = os.servicos?.length > 0 
     ? os.servicos.map((s: any) => `
         <tr>
@@ -24,17 +26,6 @@ export const gerarImpressaoOS = (
         </tr>
       `).join('')
     : '<tr><td colspan="4" style="padding: 8px; text-align: center; color: #64748b;">Nenhum serviço registrado.</td></tr>';
-
-  const pecasHtml = os.pecas?.length > 0 
-    ? os.pecas.map((p: any) => `
-        <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${p.descricao}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">${p.quantidade} ${p.tipoUnidade || 'UN'}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right;">R$ ${Number(p.valorUnitario || 0).toFixed(2)}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right;">R$ ${Number(p.total || 0).toFixed(2)}</td>
-        </tr>
-      `).join('')
-    : '<tr><td colspan="4" style="padding: 8px; text-align: center; color: #64748b;">Nenhuma peça registrada.</td></tr>';
 
   // Renderiza a tag da imagem apenas se a URL do logo existir
   const logoHtml = logoUrl 
@@ -66,6 +57,7 @@ export const gerarImpressaoOS = (
             <span style="display: inline-block; font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: bold; background: ${coresStatus.bg}; color: ${coresStatus.text}; text-transform: uppercase;">${os.status}</span>
           </div>
         </div>
+
         <div class="info-grid">
           <div class="card-info">
             <strong>Dados do Cliente</strong>
@@ -74,19 +66,36 @@ export const gerarImpressaoOS = (
           </div>
           <div class="card-info">
             <strong>Detalhes da OS</strong>
-            <p style="margin: 5px 0 0 0;"><strong>Objeto:</strong> ${os.equipamento}</p>
+            <p style="margin: 5px 0 0 0;"><strong>Objeto / Equipamento:</strong> ${os.equipamento}</p>
             <p style="margin: 5px 0 0 0;"><strong>Abertura:</strong> ${dataFormatada}</p>
           </div>
         </div>
-        ${os.tipoOs !== 'produtos' ? `<h3>Serviços</h3><table><thead><tr><th>Descrição</th><th style="text-align: center;">Qtd</th><th style="text-align: right;">Unitário</th><th style="text-align: right;">Total</th></tr></thead><tbody>${servicosHtml}</tbody></table>` : ''}
-        ${os.tipoOs !== 'mao_de_obra' ? `<h3>Peças</h3><table><thead><tr><th>Descrição</th><th style="text-align: center;">Qtd</th><th style="text-align: right;">Unitário</th><th style="text-align: right;">Total</th></tr></thead><tbody>${pecasHtml}</tbody></table>` : ''}
-        <div class="total-box">VALOR TOTAL: R$ ${Number(os.valorTotal || 0).toFixed(2)}</div>
-        <div style="margin-top: 50px; display: flex; justify-content: space-between;">
-          <div style="border-top: 1px solid #cbd5e1; width: 45%; text-align: center; padding-top: 5px; font-size: 12px; margin-top: 40px;">Técnico</div>
-          <div style="border-top: 1px solid #cbd5e1; width: 45%; text-align: center; padding-top: 5px; font-size: 12px; margin-top: 40px;">Cliente</div>
+
+        <h3>Serviços e Mão de Obra</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Descrição do Serviço</th>
+              <th style="text-align: center; width: 80px;">Qtd</th>
+              <th style="text-align: right; width: 120px;">Unitário</th>
+              <th style="text-align: right; width: 120px;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${servicosHtml}
+          </tbody>
+        </table>
+
+        <div class="total-box">
+          VALOR TOTAL DA OS: R$ ${Number(os.valorTotal || 0).toFixed(2)}
         </div>
+
+        <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+          <div style="border-top: 1px solid #cbd5e1; width: 45%; text-align: center; padding-top: 5px; font-size: 12px; margin-top: 40px;">Técnico Responsável</div>
+          <div style="border-top: 1px solid #cbd5e1; width: 45%; text-align: center; padding-top: 5px; font-size: 12px; margin-top: 40px;">Assinatura do Cliente</div>
+        </div>
+
         <script>
-          // O timeout garante que o navegador carregue o logotipo da URL antes de abrir a janela de impressão
           window.onload = function() { 
             setTimeout(() => { window.print(); }, 300); 
           };

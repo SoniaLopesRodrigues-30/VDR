@@ -48,29 +48,7 @@ export function ModalOrdemServico(props: any) {
                 <option value="Cancelada">Cancelada</option>
               </select>
             </div>
-          </div>
-
-          {/* SELEÇÃO DO TIPO DE ORDEM DE SERVIÇO */}
-          <div style={{ marginBottom: '18px', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600', color: '#1e293b' }}>Foco da Ordem de Serviço:</label>
-            <div style={{ display: 'flex', gap: '20px' }}>
-              <label style={{ fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <input type="radio" name="tipoOs" value="ambos" checked={props.tipoOs === 'ambos'} onChange={() => props.setTipoOs('ambos')} /> Prestação e Venda (Ambos)
-              </label>
-              <label style={{ fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <input type="radio" name="tipoOs" value="mao_de_obra" checked={props.tipoOs === 'mao_de_obra'} onChange={() => props.setTipoOs('mao_de_obra')} /> Apenas Mão de Obra (Serviços)
-              </label>
-              <label style={{ fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <input type="radio" name="tipoOs" value="produtos" checked={props.tipoOs === 'produtos'} onChange={() => props.setTipoOs('produtos')} /> Apenas Venda (Produtos)
-              </label>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '600' }}>Equipamento / Descrição do Objeto</label>
-            <input type="text" value={props.equipamento} onChange={(e) => props.setEquipamento(e.target.value)} placeholder="Ex: Computador, Motor Hidráulico" style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-          </div>
-
+          </div>          
           {/* INJEÇÃO DA SEGUNDA PARTE (PEÇAS E SERVIÇOS CONDICIONAIS) */}
           <SecaoItensModal props={props} />
 
