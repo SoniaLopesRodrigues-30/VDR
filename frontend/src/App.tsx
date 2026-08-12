@@ -4,9 +4,9 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react
 import { Users, FileText, ClipboardList, Package, LayoutDashboard, Receipt, DollarSign, BarChart3 } from 'lucide-react';
 
 import Clientes from './components/Clientes/Clientes';
-import Orcamentos from './components/Orcamentos/Orcamentos'; 
+//import Orcamentos from './components//Orcamentos/Orcamentos'; 
 import Nfe from './Nfe';
-import OrdensServico  from  './components/OrdServ/OrdensServico';
+//import OrdensServico  from  './components/OrdServ/OrdensServico';
 import FluxoCaixa from './components/FluxoCaixa/FluxoCaixa';
 
 // IMPORTAÇÃO CORRETA DO COMPONENTE REAL DE PRODUTOS
@@ -65,8 +65,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/clientes" element={<Clientes />} />
             <Route path="/produtos" element={<Produtos />} />
-            <Route path="/orcamentos" element={<Orcamentos />} />
-            <Route path="/ordens" element={<OrdensServico />} />
+            
             <Route path="/nfe" element={<Nfe />} />
             <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
             <Route path="/relatorios" element={<Relatorios />} />
