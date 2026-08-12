@@ -6,7 +6,7 @@ import { Users, FileText, ClipboardList, Package, LayoutDashboard, Receipt, Doll
 import Clientes from './components/Clientes/Clientes';
 import Orcamentos from './components/Orcamentos/Orcamentos'; 
 import Nfe from './Nfe';
-import { OrdensServico } from "./components/OrdServ/OrdensServico";
+import OrdensServico  from  './components/OrdServ/OrdensServico';
 import FluxoCaixa from './components/FluxoCaixa/FluxoCaixa';
 
 // IMPORTAÇÃO CORRETA DO COMPONENTE REAL DE PRODUTOS
