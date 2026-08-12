@@ -4,9 +4,9 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react
 import { Users, FileText, ClipboardList, Package, LayoutDashboard, Receipt, DollarSign, BarChart3 } from 'lucide-react';
 
 import Clientes from './components/Clientes/Clientes';
-//import Orcamentos from './components//Orcamentos/Orcamentos'; 
+import Orcamentos from './components/Orcamentos/Orcamentos'; 
+import OrdensServico from './components/OrdServ/OrdensServico';
 import Nfe from './Nfe';
-//import OrdensServico  from  './components/OrdServ/OrdensServico';
 import FluxoCaixa from './components/FluxoCaixa/FluxoCaixa';
 
 // IMPORTAÇÃO CORRETA DO COMPONENTE REAL DE PRODUTOS
@@ -46,16 +46,14 @@ export default function App() {
         {/* MENU LATERAL (SIDEBAR) */}
         <nav style={S.sidebarStyle}>
           <div style={S.logoStyle}>VDR GESTOR</div>
-
           <MenuLink to="/"><LayoutDashboard size={20} /> Dashboard</MenuLink>
           <MenuLink to="/clientes"><Users size={20} /> Clientes</MenuLink>
           <MenuLink to="/produtos"><Package size={20} /> Produtos</MenuLink>
           <MenuLink to="/orcamentos"><FileText size={20} /> Orçamentos</MenuLink>
-          <MenuLink to="/ordens"><ClipboardList size={20} /> Ordens de Serviço</MenuLink>
+          <MenuLink to="/ordens"><ClipboardList size={20} /> Ordens de Serviço</MenuLink>          
           <MenuLink to="/nfe"><Receipt size={20} /> Nota Fiscal (NF-e)</MenuLink>
           <MenuLink to="/fluxo-caixa"><DollarSign size={20} /> Fluxo de Caixa</MenuLink>
           <MenuLink to="/relatorios"><BarChart3 size={20} /> Relatórios</MenuLink>
-          
           <div style={S.footerStyle}>v1.0.0 (2026)</div>
         </nav>
 
@@ -66,6 +64,9 @@ export default function App() {
             <Route path="/clientes" element={<Clientes />} />
             <Route path="/produtos" element={<Produtos />} />
             
+            {/* 2. ADICIONE ESSAS DUAS LINHAS EXATAMENTE AQUI: */}
+            <Route path="/orcamentos" element={<Orcamentos />} />
+            <Route path="/ordens" element={<OrdensServico />} />        
             <Route path="/nfe" element={<Nfe />} />
             <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
             <Route path="/relatorios" element={<Relatorios />} />
