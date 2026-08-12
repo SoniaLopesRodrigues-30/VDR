@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { Wrench, Plus, Trash2, Edit2, Search, Calendar, CheckSquare } from 'lucide-react';
 
+// IMPORTAÇÃO DOS ESTILOS SEPARADOS QUE VOCÊ CRIOU
+import * as S from './OrdensServico.styles';
+
 interface ItemOS {
   produto_id: string;
   quantidade: number;
@@ -34,6 +37,7 @@ export default function OrdensServico() {
   // ==========================================
   const carregarDadosDoBanco = async () => {
     try {
+      setBusca('');
       setCarregando(true);
       const { data: dadosClientes } = await supabase.from('clientes').select('id, nome').eq('status', 'Ativo');
       if (dadosClientes) setClientes(dadosClientes);
@@ -125,43 +129,43 @@ export default function OrdensServico() {
   });
 
   // ==========================================
-  // 4. FUNÇÕES DE RENDERIZAÇÃO ISOLADAS
+  // 4. FUNÇÕES DE RENDERIZAÇÃO COM ESTILOS ISOLADOS
   // ==========================================
   const renderGradeDigitacao = () => (
-    <div style={{ border: '1px solid #334155', padding: '16px', borderRadius: '6px', backgroundColor: '#131e31', marginBottom: '20px' }}>
+    <div style={S.gridDigitacaoStyle}>
       <h4 style={{ color: '#38bdf8', marginBottom: '12px', fontSize: '14px' }}>Inserir Item Realizado / Peça Usada</h4>
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1.5fr 0.5fr', gap: '10px' }}>
-        <input type="text" placeholder="Produto / Mão de Obra" value={especificacao} onChange={e => setEspecificacao(e.target.value)} style={{ padding: '10px', backgroundColor: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '4px' }} />
-        <input type="number" placeholder="Qtd" value={qtd} onChange={e => setQtd(Number(e.target.value))} style={{ padding: '10px', backgroundColor: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '4px' }} />
-        <input type="number" placeholder="Valor (R$)" value={valUnit} onChange={e => setValUnit(Number(e.target.value))} style={{ padding: '10px', backgroundColor: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '4px' }} />
-        <input type="date" value={dataItem} onChange={e => setDataItem(e.target.value)} style={{ padding: '10px', backgroundColor: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '4px' }} />
-        <button type="button" onClick={incluirItemNaGrid} style={{ backgroundColor: '#38bdf8', color: '#0f172a', border: 'none', borderRadius: '4px', cursor: 'pointer' }}><Plus size={20}/></button>
+      <div style={S.gridCamposItemStyle}>
+        <input type="text" placeholder="Produto / Mão de Obra" value={especificacao} onChange={e => setEspecificacao(e.target.value)} style={S.inputItemStyle} />
+        <input type="number" placeholder="Qtd" value={qtd} onChange={e => setQtd(Number(e.target.value))} style={S.inputItemStyle} />
+        <input type="number" placeholder="Valor (R$)" value={valUnit} onChange={e => setValUnit(Number(e.target.value))} style={S.inputItemStyle} />
+        <input type="date" value={dataItem} onChange={e => setDataItem(e.target.value)} style={S.inputItemStyle} />
+        <button type="button" onClick={incluirItemNaGrid} style={S.botaoAdicionarStyle}><Plus size={20}/></button>
       </div>
     </div>
   );
 
   const renderTabelaItensAdicionados = () => (
-    <div style={{ overflowX: 'auto', marginBottom: '20px' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#0f172a' }}>
+    <div style={S.tabelaContainerStyle}>
+      <table style={S.tabelaStyle}>
         <thead>
-          <tr style={{ borderBottom: '1px solid #334155', textAlign: 'left' }}>
-            <th style={{ padding: '12px' }}>Especificação</th>
-            <th style={{ padding: '12px' }}>Qtd</th>
-            <th style={{ padding: '12px' }}>Valor Unit.</th>
-            <th style={{ padding: '12px' }}>Data Individual</th>
-            <th style={{ padding: '12px' }}>Total</th>
-            <th style={{ padding: '12px' }}>Remover</th>
+          <tr>
+            <th style={S.thStyle}>Especificação</th>
+            <th style={S.thStyle}>Qtd</th>
+            <th style={S.thStyle}>Valor Unit.</th>
+            <th style={S.thStyle}>Data Individual</th>
+            <th style={S.thStyle}>Total</th>
+            <th style={S.thStyle}>Remover</th>
           </tr>
         </thead>
         <tbody>
           {itens.map((item, idx) => (
-            <tr key={idx} style={{ borderBottom: '1px solid #1e293b' }}>
-              <td style={{ padding: '12px' }}>{item.produto_id}</td>
-              <td style={{ padding: '12px' }}>{item.quantidade}</td>
-              <td style={{ padding: '12px' }}>R$ {Number(item.valor_unitario).toFixed(2)}</td>
-              <td style={{ padding: '12px' }}><span style={{ color: '#38bdf8' }}><Calendar size={12}/> {item.data_item}</span></td>
-              <td style={{ padding: '12px' }}>R$ {(item.quantidade * item.valor_unitario).toFixed(2)}</td>
-              <td style={{ padding: '12px' }}>
+            <tr key={idx}>
+              <td style={S.tdStyle}>{item.produto_id}</td>
+              <td style={S.tdStyle}>{item.quantidade}</td>
+              <td style={S.tdStyle}>R$ {Number(item.valor_unitario).toFixed(2)}</td>
+              <td style={S.tdStyle}><span style={{ color: '#38bdf8' }}><Calendar size={12}/> {item.data_item}</span></td>
+              <td style={S.tdStyle}>R$ {(item.quantidade * item.valor_unitario).toFixed(2)}</td>
+              <td style={S.tdStyle}>
                 <button type="button" onClick={() => setItens(itens.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={16}/></button>
               </td>
             </tr>
@@ -172,77 +176,89 @@ export default function OrdensServico() {
   );
 
   const renderFiltroBusca = () => (
-    <div style={{ position: 'relative', marginBottom: '16px' }}>
-      <input type="text" placeholder="Buscar ordens de serviço..." value={busca} onChange={e => setBusca(e.target.value)} style={{ width: '100%', padding: '12px 12px 12px 40px', backgroundColor: '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '4px' }} />
-      <Search size={18} style={{ position: 'absolute', left: '12px', top: '14px', color: '#64748b' }} />
+    <div style={S.buscaContainerStyle}>
+      <input type="text" placeholder="Buscar ordens de serviço..." value={busca} onChange={e => setBusca(e.target.value)} style={S.inputBuscaStyle} />
+      <Search size={18} style={S.iconeBuscaStyle} />
     </div>
   );
-
   // ==========================================
   // 5. ESTRUTURA VISUAL DA PÁGINA
   // ==========================================
   return (
-    <div style={{ padding: '24px', color: '#cbd5e1', fontFamily: 'sans-serif' }}>
-      <h2 style={{ fontSize: '24px', marginBottom: '20px', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <div style={S.containerStyle}>
+      <h2 style={S.tituloStyle}>
         <Wrench size={26} /> Ordens de Serviço (OS)
       </h2>
 
-            {/* FORMULÁRIO DE CADASTRO E EDIÇÃO */}
-      <form onSubmit={handleSalvarOS} style={{ backgroundColor: '#1e293b', padding: '24px', borderRadius: '8px', marginBottom: '30px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+      {/* FORMULÁRIO DE CADASTRO E EDIÇÃO */}
+      <form onSubmit={handleSalvarOS} style={S.formStyle}>
+        <div style={S.gridFormStyle}>
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px' }}>Cliente *</label>
-            <select value={clienteId} onChange={e => setClienteId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '4px', backgroundColor: '#0f172a', color: '#fff', border: '1px solid #334155' }}>
+            <label style={S.labelStyle}>Cliente *</label>
+            <select 
+              value={clienteId} 
+              onChange={e => setClienteId(e.target.value)} 
+              style={S.inputStyle}
+            >
               <option value="">Selecione o Cliente...</option>
               {clientes.map((c: any) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px' }}>Data Limite Geral *</label>
-            <input type="date" value={validade} onChange={e => setValidade(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '4px', backgroundColor: '#0f172a', color: '#fff', border: '1px solid #334155' }} />
+            <label style={S.labelStyle}>Data Limite Geral *</label>
+            <input 
+              type="date" 
+              value={validade} 
+              onChange={e => setValidade(e.target.value)} 
+              style={S.inputStyle} 
+            />
           </div>
         </div>
 
-        {/* Chamada das funções modulares de itens */}
         {renderGradeDigitacao()}
         {itens.length > 0 && renderTabelaItensAdicionados()}
 
-        {/* Rodapé do Formulário: Totalizadores e Ações */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #334155', paddingTop: '20px' }}>
-          <h3 style={{ color: '#22c55e', margin: 0 }}>Total Geral da OS: R$ {totalGeralCalculado.toFixed(2)}</h3>
+        {/* RODAPÉ DO FORMULÁRIO */}
+        <div style={S.rodapeFormStyle}>
+          <h3 style={S.totalVerdeStyle}>Total Geral da OS: R$ {totalGeralCalculado.toFixed(2)}</h3>
           <div>
-            <button type="submit" style={{ backgroundColor: '#38bdf8', color: '#0f172a', padding: '12px 24px', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>
+            <button type="submit" style={S.botaoSalvarStyle}>
               {idEditando ? 'Atualizar OS' : 'Salvar OS'}
             </button>
             {idEditando && (
-              <button type="button" onClick={() => { setIdEditando(null); setClienteId(''); setValidade(''); setItens([]); }} style={{ marginLeft: '10px', backgroundColor: '#ef4444', color: '#fff', padding: '12px 24px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+              <button 
+                type="button" 
+                onClick={() => { setIdEditando(null); setClienteId(''); setValidade(''); setItens([]); }} 
+                style={S.botaoCancelarStyle}
+              >
                 Cancelar
               </button>
             )}
           </div>
         </div>
       </form>
-      {/* BARRA DE PESQUISA */}
+
       {renderFiltroBusca()}
 
-      {/* PAINEL DE REGISTROS VINDOS DO BANCO */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* REPETIÇÃO DE REGISTROS DO BANCO DE DADOS */}
+      <div style={S.listagemContainerStyle}>
         {carregando ? (
           <p style={{ color: '#94a3b8' }}>Carregando dados do Supabase...</p>
         ) : ordensFiltradas.length === 0 ? (
           <p style={{ color: '#64748b' }}>Nenhuma ordem de serviço localizada.</p>
         ) : (
           ordensFiltradas.map((os: any) => (
-            <div key={os.id} style={{ backgroundColor: '#1e293b', padding: '16px', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={os.id} style={S.cardOSStyle}>
               <div>
-                <span style={{ fontWeight: 'bold', color: '#38bdf8', fontSize: '16px' }}>{os.id}</span> - <span style={{ color: '#f8fafc', fontWeight: '500' }}>{os.clientes?.nome || 'Cliente'}</span>
-                <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '4px' }}>
-                  Itens Cadastrados: {os.ordens_servico_itens ? os.ordens_servico_itens.length : 0} | Status: <strong style={{ color: os.status === 'Finalizada' ? '#16a34a' : '#ca8a04' }}>{os.status}</strong>
+                <span style={{ geopoliticalStyle: 'bold', color: '#38bdf8', fontWeight: 'bold' }}>{os.id}</span> - <span style={{ color: '#f8fafc', fontWeight: '500' }}>{os.clientes?.nome || 'Cliente'}</span>
+                <div style={S.cardTextoStyle}>
+                  Itens: {os.ordens_servico_itens ? os.ordens_servico_itens.length : 0} | Status: <strong style={{ color: os.status === 'Finalizada' ? '#16a34a' : '#ca8a04' }}>{os.status}</strong>
                 </div>
-                <div style={{ fontWeight: 'bold', color: '#22c55e', marginTop: '4px', fontSize: '15px' }}>
+                <div style={{ fontWeight: 'bold', color: '#22c55e', marginTop: '4px' }}>
                   R$ {Number(os.valor_total || 0).toFixed(2)}
                 </div>
               </div>
+              
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button 
                   type="button" 
@@ -252,17 +268,16 @@ export default function OrdensServico() {
                     setValidade(os.validade); 
                     setItens(os.ordens_servico_itens || []); 
                   }} 
-                  style={{ background: '#334155', border: 'none', padding: '8px', color: '#38bdf8', cursor: 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
-                  title="Editar Registro"
+                  style={S.botaoAcoesCardStyle}
+                  title="Editar OS"
                 >
                   <Edit2 size={16}/>
                 </button>
-                
                 {os.status !== 'Finalizada' && (
                   <button 
                     type="button" 
                     onClick={() => handleFinalizarOS(os)} 
-                    style={{ background: '#16a34a', border: 'none', padding: '8px 12px', color: '#fff', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    style={S.botaoFinalizarCardStyle}
                   >
                     <CheckSquare size={16}/> Finalizar
                   </button>
