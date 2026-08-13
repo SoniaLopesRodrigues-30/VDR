@@ -1,5 +1,16 @@
+// src/components/FluxoCaixa/TabelaCaixa.tsx
 import React from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
+
+// Contrato de propriedades exigido pelo TypeScript do seu projeto
+interface TabelaCaixaProps {
+  carregando: boolean;
+  transacoesFiltradas: any[];
+  prepararEdicao: (t: any) => void;
+  excluir: (id: string) => Promise<void> | void;
+  fmt: (v: number) => string;
+  pad: React.CSSProperties;
+}
 
 export function TabelaCaixa({
   carregando,
@@ -7,8 +18,8 @@ export function TabelaCaixa({
   prepararEdicao,
   excluir,
   fmt,
-  pad // objeto de estilo passado por prop
-}) {
+  pad
+}: TabelaCaixaProps) {
   return (
     <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
@@ -34,7 +45,7 @@ export function TabelaCaixa({
               <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                 <td style={pad}>{t.data}</td>
                 <td style={pad}>{t.descricao}</td>
-                <td style={pad}>{t.cliente_fornecedor}</td>
+                <td style={pad}>{t.cliente_fornecedor || ''}</td>
                 <td style={{ ...pad, color: '#475569', fontSize: '13px' }}>{t.conta_contabil}</td>
                 <td style={{ ...pad, color: '#475569', fontSize: '13px' }}>{t.forma_pagamento}</td>
                 <td style={pad}>

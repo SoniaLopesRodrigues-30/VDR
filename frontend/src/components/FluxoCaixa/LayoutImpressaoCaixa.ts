@@ -1,7 +1,7 @@
-export function gerarHtmlCaixa(dados: { transacoes: any[], receitas: number, despesas: number }, urlLogo: string): string {
-  const { transacoes, receitas, despesas } = dados;
-  const saldo = receitas - despesas;
-
+export function gerarHtmlCaixa(dados: { transacoes: any[], receitas: number, despesas: number, saldoAnterior?: number, saldoAtual?: number, periodo: string }, urlLogo: string): string {
+  // Garantimos que se saldoAnterior ou saldoAtual não existirem, eles assumam o valor 0
+  const { transacoes = [], receitas = 0, despesas = 0, saldoAnterior = 0, saldoAtual = 0, periodo } = dados;
+  const saldoMes = receitas - despesas;
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   return `
@@ -9,7 +9,7 @@ export function gerarHtmlCaixa(dados: { transacoes: any[], receitas: number, des
     <html lang="pt-BR">
     <head>
       <meta charset="UTF-8">
-      <title>Relatório de Fluxo de Caixa</title>
+      <title>Relatório de Fluxo de Caixa - ${periodo}</title>
       <style>
         @page { size: A4 landscape; margin: 15mm; }
         body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; margin: 0; padding: 0; line-height: 1.5; font-size: 13px; }
@@ -22,10 +22,10 @@ export function gerarHtmlCaixa(dados: { transacoes: any[], receitas: number, des
         .header h1 { margin: 0; color: #1e3a8a; font-size: 24px; font-weight: bold; text-transform: uppercase; }
         .header p { margin: 4px 0 0 0; color: #64748b; font-size: 12px; }
         
-        .resumo-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 25px; }
-        .card { border: 1px solid #e2e8f0; padding: 12px; border-radius: 6px; background-color: #f8fafc; }
-        .card p { margin: 0 0 4px 0; font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold; }
-        .card h3 { margin: 0; font-size: 18px; }
+        .resumo-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 25px; }
+        .card { border: 1px solid #e2e8f0; padding: 10px; border-radius: 6px; background-color: #f8fafc; }
+        .card p { margin: 0 0 4px 0; font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: bold; }
+        .card h3 { margin: 0; font-size: 16px; }
         
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; page-break-inside: auto; }
         tr { page-break-inside: avoid; page-break-after: auto; }
@@ -48,14 +48,16 @@ export function gerarHtmlCaixa(dados: { transacoes: any[], receitas: number, des
         </div>
         <div class="header-titulos">
           <h1>FLUXO DE CAIXA</h1>
-          <p>Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+          <p><strong>Referência:</strong> Mês ${periodo} | Emitido em: ${new Date().toLocaleDateString('pt-BR')}</p>
         </div>
       </div>
 
       <div class="resumo-cards">
-        <div class="card"><p>Total de Receitas</p><h3 style="color: #10b981;">${fmt(receitas)}</h3></div>
-        <div class="card"><p>Total de Despesas</p><h3 style="color: #ef4444;">${fmt(despesas)}</h3></div>
-        <div class="card"><p>Saldo Operacional</p><h3 style="color: ${saldo >= 0 ? '#3b82f6' : '#ef4444'};">${fmt(saldo)}</h3></div>
+        <div class="card"><p>Saldo Anterior</p><h3 style="color: ${saldoAnterior >= 0 ? '#3b82f6' : '#ef4444'};">${fmt(saldoAnterior)}</h3></div>
+        <div class="card"><p>Receitas do Mês</p><h3 style="color: #10b981;">${fmt(receitas)}</h3></div>
+        <div class="card"><p>Despesas do Mês</p><h3 style="color: #ef4444;">${fmt(despesas)}</h3></div>
+        <div class="card"><p>Resultado do Mês</p><h3 style="color: ${saldoMes >= 0 ? '#3b82f6' : '#ef4444'};">${fmt(saldoMes)}</h3></div>
+        <div class="card" style="background-color: #f0fdf4; border: 1px solid #bbf7d0;"><p>Saldo Atual Geral</p><h3 style="color: #15803d; font-weight: bold;">${fmt(saldoAtual)}</h3></div>
       </div>
 
       <table>
@@ -87,7 +89,7 @@ export function gerarHtmlCaixa(dados: { transacoes: any[], receitas: number, des
                 ${fmt(t.valor)}
               </td>
             </tr>
-          `).join('') || '<tr><td colspan="7" style="text-align:center; padding: 20px;">Nenhum lançamento localizado.</td></tr>'}
+          `).join('') || '<tr><td colspan="7" style="text-align:center; padding: 20px;">Nenhum lançamento localizado neste mês.</td></tr>'}
         </tbody>
       </table>
 

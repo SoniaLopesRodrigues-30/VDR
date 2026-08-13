@@ -1,101 +1,168 @@
 // src/components/FluxoCaixa/useFluxoCaixa.ts
-import { useState, useEffect, useCallback, FormEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 
-export interface Transacao {
-  id: number | string; data: string; descricao: string; tipo: 'receita' | 'despesa'; valor: number;
-  conta_contabil: string; forma_pagamento: string; cliente_fornecedor: string;
+interface Transacao {
+  id: string;
+  descricao: string;
+  cliente_fornecedor: string;
+  valor: number;
+  data: string;
+  conta_contabil: string;
+  forma_pagamento: string;
+  tipo: 'receita' | 'despesa';
 }
 
 export function useFluxoCaixa() {
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [mostrarForm, setMostrarForm] = useState(false);
-  const [idEditando, setIdEditando] = useState<number | string | null>(null);
-  
-  const estadoInicialForm = {
-    descricao: '', valor: '', tipo: 'receita' as 'receita' | 'despesa',
-    conta_contabil: 'Venda de Produtos', forma_pagamento: 'Pix', cliente_fornecedor: '', data: new Date().toISOString().split('T')[0]
-  };
-  const [form, setForm] = useState(estadoInicialForm);
+  const [carregando, setCarregando] = useState<boolean>(true);
+  const [mostrarForm, setMostrarForm] = useState<boolean>(false);
+  const [idEditando, setIdEditando] = useState<string | null>(null);
 
-  const carregarTransacoes = useCallback(async () => {
+  // Estado do formulário inicializado com valores padrão seguros
+  const [form, setForm] = useState<any>({
+    descricao: '',
+    cliente_fornecedor: '',
+    valor: '',
+    data: new Date().toISOString().substring(0, 10),
+    conta_contabil: 'Venda de Produtos',
+    forma_pagamento: 'Pix',
+    tipo: 'receita'
+  });
+
+  // Carrega todos os registros do banco de dados do Supabase
+  const carregarTransacoes = async () => {
     try {
       setCarregando(true);
-      const { data, error } = await supabase.from('transacoes').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('fluxo_caixa')
+        .select('*')
+        .order('data', { ascending: false });
+
       if (error) throw error;
-      if (data) setTransacoes(data as Transacao[]);
-    } catch {
-      alert('Erro ao carregar dados do Supabase.');
+      if (data) setTransacoes(data);
+    } catch (err) {
+      console.error('Erro ao buscar fluxo de caixa:', err);
     } finally {
       setCarregando(false);
     }
+  };
+
+  useEffect(() => {
+    carregarTransacoes();
   }, []);
 
-  useEffect(() => { carregarTransacoes(); }, [carregarTransacoes]);
+  // Totais brutos calculados do banco (usados como fallback no sistema)
+  const receitas = transacoes
+    .filter(t => t.tipo === 'receita')
+    .reduce((acc, t) => acc + Number(t.valor || 0), 0);
 
-  const receitas = transacoes.filter(t => t.tipo === 'receita').reduce((acc, t) => acc + t.valor, 0);
-  const despesas = transacoes.filter(t => t.tipo === 'despesa').reduce((acc, t) => acc + t.valor, 0);
+  const despesas = transacoes
+    .filter(t => t.tipo === 'despesa')
+    .reduce((acc, t) => acc + Number(t.valor || 0), 0);
 
+  // Insere ou atualiza o lançamento financeiro
+  const salvar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.descricao || !form.valor || !form.data) {
+      alert('Por favor, preencha os campos obrigatórios (Descrição, Valor e Data).');
+      return;
+    }
+
+    try {
+      const payload = {
+        descricao: form.descricao,
+        cliente_fornecedor: form.cliente_fornecedor,
+        valor: Number(form.valor),
+        data: form.data,
+        conta_contabil: form.conta_contabil,
+        forma_pagamento: form.forma_pagamento,
+        tipo: form.tipo
+      };
+
+      if (idEditando) {
+        const { error } = await supabase
+          .from('fluxo_caixa')
+          .update(payload)
+          .eq('id', idEditando);
+        if (error) throw error;
+        alert('Lançamento atualizado com sucesso!');
+      } else {
+        const { error } = await supabase
+          .from('fluxo_caixa')
+          .insert([payload]);
+        if (error) throw error;
+        alert('Lançamento registrado com sucesso!');
+      }
+
+      cancelarAcao();
+      await carregarTransacoes();
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao salvar o lançamento no banco de dados.');
+    }
+  };
+
+  // Remove um registro permanente do Supabase
+  const excluir = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir em definitivo este lançamento do caixa?')) return;
+    try {
+      const { error } = await supabase
+        .from('fluxo_caixa')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      
+      alert('Lançamento removido!');
+      await carregarTransacoes();
+    } catch (err) {
+      alert('Erro ao tentar excluir registro.');
+    }
+  };
+
+  // Prepara os estados locais para o modo de edição de dados
   const prepararEdicao = (t: Transacao) => {
     setIdEditando(t.id);
     setForm({
       descricao: t.descricao,
-      valor: t.valor.toString(),
-      tipo: t.tipo,
+      cliente_fornecedor: t.cliente_fornecedor || '',
+      valor: String(t.valor),
+      data: t.data,
       conta_contabil: t.conta_contabil,
       forma_pagamento: t.forma_pagamento,
-      cliente_fornecedor: t.cliente_fornecedor === 'Não informado' ? '' : t.cliente_fornecedor,
-      data: t.data.split('/').reverse().join('-') // Converte DD/MM/YYYY de volta para YYYY-MM-DD
+      tipo: t.tipo
     });
     setMostrarForm(true);
   };
 
+  // Limpa o formulário e fecha a gaveta de inserção
   const cancelarAcao = () => {
-    setForm(estadoInicialForm);
     setIdEditando(null);
+    setForm({
+      descricao: '',
+      cliente_fornecedor: '',
+      valor: '',
+      data: new Date().toISOString().substring(0, 10),
+      conta_contabil: 'Venda de Produtos',
+      forma_pagamento: 'Pix',
+      tipo: 'receita'
+    });
     setMostrarForm(false);
   };
 
-  const salvar = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!form.descricao || !form.valor || parseFloat(form.valor) <= 0) return alert('Campos inválidos.');
-
-    const payload = {
-      data: form.data.split('-').reverse().join('/'),
-      descricao: form.descricao, tipo: form.tipo, valor: parseFloat(form.valor),
-      conta_contabil: form.conta_contabil, forma_pagamento: form.forma_pagamento,
-      cliente_fornecedor: form.cliente_fornecedor || 'Não informado'
-    };
-
-    try {
-      if (idEditando) {
-        // Modo Edição: Atualiza no banco
-        const { error } = await supabase.from('transacoes').update(payload).eq('id', idEditando);
-        if (error) throw error;
-      } else {
-        // Modo Criação: Insere no banco
-        const { error } = await supabase.from('transacoes').insert([payload]);
-        if (error) throw error;
-      }
-
-      cancelarAcao();
-      carregarTransacoes();
-    } catch {
-      alert('Erro ao salvar no Supabase.');
-    }
+  return {
+    transacoes,
+    carregando,
+    mostrarForm,
+    setMostrarForm,
+    form,
+    setForm,
+    receitas,
+    despesas,
+    salvar,
+    excluir,
+    idEditando,
+    prepararEdicao,
+    cancelarAcao
   };
-
-  const excluir = async (id: number | string) => {
-    if (!window.confirm('Excluir este lançamento?')) return;
-    try {
-      const { error } = await supabase.from('transacoes').delete().eq('id', id);
-      if (error) throw error;
-      setTransacoes(prev => prev.filter(x => x.id !== id));
-    } catch {
-      alert('Erro ao excluir.');
-    }
-  };
-
-  return { transacoes, carregando, mostrarForm, setMostrarForm, form, setForm, receitas, despesas, salvar, excluir, idEditando, prepararEdicao, cancelarAcao };
 }
