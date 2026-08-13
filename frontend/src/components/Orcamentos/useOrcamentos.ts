@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient'; 
 

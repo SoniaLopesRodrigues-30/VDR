@@ -202,3 +202,38 @@ export const botaoAprovarCardStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: '4px'
 };
+// Adicione estes objetos dentro do seu arquivo Orcamentos.styles.js
+
+export const containerBotoesCardStyle = {
+  display: 'flex',
+  gap: '8px'
+};
+
+export const areaOcultaImpressaoStyle = {
+  display: 'none'
+};
+
+export const areaVisivelImpressaoStyle = {
+  display: 'block'
+};
+
+export const textoCentralizadoGradeStyle = {
+  color: '#38bdf8',
+  marginBottom: '12px',
+  fontSize: '14px'
+};
+
+export const iconeDataTabelaStyle = {
+  color: '#38bdf8'
+};
+
+export const botaoLixeiraStyle = {
+  background: 'none',
+  border: 'none',
+  color: '#ef4444',
+  cursor: 'pointer'
+};
+
+export const textoInformativoStyle: React.CSSProperties = {
+  color: '#94a3b8'
+};
