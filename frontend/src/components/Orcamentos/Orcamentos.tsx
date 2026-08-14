@@ -34,8 +34,10 @@ export default function Orcamentos() {
     try {
       setCarregando(true);
       const { data: dadosClientes } = await supabase.from('clientes').select('id, nome').eq('status', 'Ativo');
-      if (dadosClientes) setClientes(dadosClientes);
-      const { data: dadosOrcamentos } = await supabase.from('orcamentos').select('*, clientes(nome), orcamento_itens(*)');
+      if (dadosClientes) setClientes(dadosClientes);      
+      
+      // ✅ CORREÇÃO: Alterado de clientes(nome) para clientes(*) e garantido a tabela correta orcamento_itens(*)
+      const { data: dadosOrcamentos } = await supabase.from('orcamentos').select('*, clientes(*), orcamento_itens(*)');
       if (dadosOrcamentos) setOrcamentos(dadosOrcamentos);
     } catch (err) {
       console.error('Erro de conexão:', err);
@@ -76,7 +78,12 @@ export default function Orcamentos() {
       }));
       await supabase.from('orcamento_itens').insert(payloadItens);
       alert('Orçamento gravado com sucesso!');
-      setClienteId(''); setValidade(''); setItens([]); setIdEditando(null);
+      
+      // ✅ CORREÇÃO: Limpa todos os estados após o salvamento, inclusive redefinindo idEditando para nulo
+      setClienteId(''); 
+      setValidade(''); 
+      setItens([]); 
+      setIdEditando(null);
       await carregarDadosDoBanco();
     } catch (error) {
       alert('Erro ao salvar orçamento.');
@@ -89,8 +96,16 @@ export default function Orcamentos() {
     try {
       await supabase.from('orcamentos').update({ status: 'Aprovado' }).eq('id', orc.id);
       await supabase.from('ordens_servico').insert([{ id: codigoOS, cliente_id: orc.cliente_id, validade: orc.validade, status: 'Em Execução', valor_total: orc.valor_total }]);
-      if (orc.orcamento_itens?.length > 0) {
-        const payloadItensOS = orc.orcamento_itens.map((item: any) => ({ os_id: codigoOS, produto_id: item.produto_id, quantidade: item.quantidade, valor_unitario: item.valor_unitario, data_item: item.data_item }));
+      
+      // ✅ CORREÇÃO: Mapeia o nome correto da chave orcamento_itens
+      if (orc.orcamento_itens && orc.orcamento_itens.length > 0) {
+        const payloadItensOS = orc.orcamento_itens.map((item: any) => ({ 
+          os_id: codigoOS, 
+          produto_id: item.produto_id, 
+          quantidade: item.quantidade, 
+          valor_unitario: item.valor_unitario, 
+          data_item: item.data_item 
+        }));
         await supabase.from('ordens_servico_itens').insert(payloadItensOS);
       }
       alert(`Sucesso! Criada a ${codigoOS}`);
@@ -102,14 +117,12 @@ export default function Orcamentos() {
     if (!orc) return;
 
     const iframe = document.createElement('iframe');
-    
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
     iframe.style.bottom = '0';
     iframe.style.width = '0';
     iframe.style.height = '0';
     iframe.style.border = '0';
-
     document.body.appendChild(iframe);
 
     const doc = iframe.contentWindow?.document || iframe.contentDocument;
@@ -119,7 +132,6 @@ export default function Orcamentos() {
       doc.close();
     }
 
-    // CORREÇÃO 2: Removido o bloco repetido que estava solto abaixo
     setTimeout(() => {
       document.body.removeChild(iframe);
     }, 2000);
@@ -130,6 +142,30 @@ export default function Orcamentos() {
     const termo = busca.toLowerCase().trim();
     return !termo || orc.id.toLowerCase().includes(termo) || orc.clientes?.nome?.toLowerCase().includes(termo);
   });
+
+  // ✅ NOVA FUNÇÃO LOCAL: Garante que os itens entrem na grid de forma segura e tratada ao editar
+  const ativarEdicaoOrcamento = (orc: any) => {
+    setIdEditando(orc.id);
+    setClienteId(String(orc.cliente_id));
+    
+    if (orc.validade) {
+      setValidade(orc.validade.split('T')[0]);
+    } else {
+      setValidade('');
+    }
+
+    if (orc.orcamento_itens) {
+      const itensFormatados = orc.orcamento_itens.map((item: any) => ({
+        produto_id: item.produto_id || '',
+        quantidade: Number(item.quantidade || 0),
+        valor_unitario: Number(item.valor_unitario || 0),
+        data_item: item.data_item ? item.data_item.split('T')[0] : ''
+      }));
+      setItens(itensFormatados);
+    } else {
+      setItens([]);
+    }
+  };
 
   return (
     <div style={S.containerStyle}>
@@ -145,7 +181,7 @@ export default function Orcamentos() {
       </div>
 
       <ListaOrcamentos 
-        {...{carregando, orcamentosFiltrados, setIdEditando, setClienteId, setValidade, setItens, lidarComImpressao, converterEmOS}} 
+        {...{carregando, orcamentosFiltrados, setIdEditando: ativarEdicaoOrcamento, setClienteId, setValidade, setItens, lidarComImpressao, converterEmOS}} 
       />
     </div>
   );
