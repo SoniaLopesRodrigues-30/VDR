@@ -4,8 +4,8 @@ import { Wrench, Search } from 'lucide-react';
 import * as S from './OrdensServico.styles';
 
 // Importação dos subcomponentes novos e do layout
-import { FormularioOS } from './FormularioOS.js';
-import { ListaOS } from './ListaOS.js';
+import { FormularioOS } from './FormularioOS';
+import { ListaOS } from './ListaOS';
 
 import { gerarHtmlOS } from './LayoutImpressaoOS';
 
@@ -60,7 +60,6 @@ export default function OrdensServico() {
     setItens([...itens, { produto_id: especificacao, quantidade: qtd, valor_unitario: valUnit, data_item: dataItem }]);
     setEspecificacao(''); setQtd(1); setValUnit(0); setDataItem('');
   };
-
   const handleSalvarOS = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clienteId || !validade || itens.length === 0) {
@@ -82,12 +81,45 @@ export default function OrdensServico() {
       }));
       await supabase.from('ordens_servico_itens').insert(payloadItens);
       alert('Ordem de serviço gravada com sucesso!');
-      setClienteId(''); setValidade(''); setItens([]); setIdEditando(null);
+      
+      // ✅ CORREÇÃO: Reseta todos os estados limpando a edição por completo
+      setClienteId(''); 
+      setValidade(''); 
+      setItens([]); 
+      setIdEditando(null);
       await carregarDadosDoBanco();
     } catch (error) {
       alert('Erro ao processar salvamento no Supabase.');
     }
   };
+
+
+    // ✅ NOVA FUNÇÃO: Ativa o modo de edição injetando os itens na Grid
+  const ativarEdicaoOS = (os: any) => {
+    setIdEditando(os.id);
+    setClienteId(os.cliente_id.toString());
+    
+    // Formata a data para o padrão do input (YYYY-MM-DD)
+    if (os.validade) {
+      setValidade(os.validade.split('T')[0]);
+    } else {
+      setValidade('');
+    }
+
+    // Carrega os itens daquela OS específica para dentro da grid editável
+    if (os.ordens_servico_itens) {
+      const itensFormatados = os.ordens_servico_itens.map((item: any) => ({
+        produto_id: item.produto_id,
+        quantidade: Number(item.quantidade),
+        valor_unitario: Number(item.valor_unitario),
+        data_item: item.data_item ? item.data_item.split('T')[0] : ''
+      }));
+      setItens(itensFormatados);
+    } else {
+      setItens([]);
+    }
+  };
+
 
   const handleFinalizarOS = async (os: any) => {
     if (!confirm(`Finalizar a ${os.id}? O valor total irá automaticamente para o fluxo de caixa como receita.`)) return;

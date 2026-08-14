@@ -1,5 +1,6 @@
+//formularioOS.jsx
 import React from 'react';
-import { Plus, Trash2, Calendar } from 'lucide-react';
+import { Plus, Trash2, Calendar, Edit2 } from 'lucide-react';
 import * as S from './OrdensServico.styles';
 
 export function FormularioOS({
@@ -61,7 +62,7 @@ export function FormularioOS({
                 <th style={S.thStyle}>Valor Unit.</th>
                 <th style={S.thStyle}>Data Individual</th>
                 <th style={S.thStyle}>Total</th>
-                <th style={S.thStyle}>Remover</th>
+                <th style={S.thStyle} style={{ textAlign: 'center', width: '80px' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -73,7 +74,33 @@ export function FormularioOS({
                   <td style={S.tdStyle}><span style={{ color: '#38bdf8' }}><Calendar size={12}/> {item.data_item}</span></td>
                   <td style={S.tdStyle}>R$ {(item.quantidade * item.valor_unitario).toFixed(2)}</td>
                   <td style={S.tdStyle}>
-                    <button type="button" onClick={() => setItens(itens.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={16}/></button>
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                      {/* Botão para Editar a Linha (Puxa os dados de volta para o formulário de cima) */}
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setEspecificacao(item.produto_id);
+                          setQtd(item.quantidade);
+                          setValUnit(item.valor_unitario);
+                          setDataItem(item.data_item);
+                          setItens(itens.filter((_, i) => i !== idx)); // Remove temporariamente da grid para recolocar atualizado
+                        }} 
+                        style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}
+                        title="Editar linha"
+                      >
+                        <Edit2 size={16}/>
+                      </button>
+                      
+                      {/* Botão Remover */}
+                      <button 
+                        type="button" 
+                        onClick={() => setItens(itens.filter((_, i) => i !== idx))} 
+                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                        title="Remover linha"
+                      >
+                        <Trash2 size={16}/>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -89,7 +116,7 @@ export function FormularioOS({
             {idEditando ? 'Atualizar OS' : 'Salvar OS'}
           </button>
           {idEditando && (
-            <button type="button" onClick={() => { setIdEditando(null); setClienteId(''); setValidade(''); setItens([]); }} style={S.botaoCancelarStyle}>
+            <button type="button" onClick={() => { setIdEditando(null); setClienteId(''); setValidade(''); setItens([]); }} style={S.botaoCancelarStyle || S.botaoSalvarStyle}>
               Cancelar
             </button>
           )}

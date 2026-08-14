@@ -36,12 +36,32 @@ export function ListaOS({
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button 
                 type="button" 
-                onClick={() => { 
-                  setIdEditando(os.id); 
-                  setClienteId(String(os.cliente_id)); 
-                  setValidade(os.validade); 
-                  setItens(os.ordens_servico_itens || []); 
-                }} 
+                // Altere apenas o bloco do onClick do botão de editar dentro de ListaOS.jsx:
+onClick={() => { 
+  setIdEditando(os.id); 
+  setClienteId(String(os.cliente_id)); 
+  
+  // Correção: Extrai estritamente a primeira string do split [0]
+  if (os.validade) {
+    setValidade(os.validade.split('T')[0]);
+  } else {
+    setValidade('');
+  }
+  
+  if (os.ordens_servico_itens) {
+    const itensTratados = os.ordens_servico_itens.map((item) => ({
+      produto_id: item.produto_id || '',
+      quantidade: Number(item.quantidade || 0),
+      valor_unitario: Number(item.valor_unitario || 0),
+      // Correção: Garante texto puro no campo de data individual
+      data_item: item.data_item ? item.data_item.split('T')[0] : ''
+    }));
+    setItens(itensTratados);
+  } else {
+    setItens([]);
+  }
+}}
+
                 style={S.botaoAcoesCardStyle}
                 title="Editar OS"
               >

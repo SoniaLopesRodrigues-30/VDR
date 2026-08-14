@@ -293,3 +293,4 @@ export function gerarHtmlOS(os: any, urlLogo: string, empresa: any = {}): string
 </html>
   `;
 }
+
