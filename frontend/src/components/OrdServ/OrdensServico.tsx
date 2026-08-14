@@ -4,8 +4,9 @@ import { Wrench, Search } from 'lucide-react';
 import * as S from './OrdensServico.styles';
 
 // Importação dos subcomponentes novos e do layout
-import { FormularioOS } from './FormularioOS';
-import { ListaOS } from './ListaOS';
+import { FormularioOS } from './FormularioOS.js';
+import { ListaOS } from './ListaOS.js';
+
 import { gerarHtmlOS } from './LayoutImpressaoOS';
 
 interface ItemOS {
@@ -34,9 +35,13 @@ export default function OrdensServico() {
     try {
       setBusca('');
       setCarregando(true);
+      
+      // Busca clientes ativos para a seleção do formulário
       const { data: dadosClientes } = await supabase.from('clientes').select('id, nome').eq('status', 'Ativo');
       if (dadosClientes) setClientes(dadosClientes);
-      const { data: dadosOS } = await supabase.from('ordens_servico').select('*, clientes(nome), ordens_servico_itens(*)');
+      
+      // Ajustado para buscar TODOS os campos do cliente (clientes(*)) para alimentar o cabeçalho impresso
+      const { data: dadosOS } = await supabase.from('ordens_servico').select('*, clientes(*), ordens_servico_itens(*)');
       if (dadosOS) setOrdens(dadosOS);
     } catch (err) {
       console.error('Erro de conexão com o banco:', err);
@@ -110,7 +115,7 @@ export default function OrdensServico() {
     const doc = iframe.contentWindow?.document || iframe.contentDocument;
     if (doc) {
       doc.open();
-      // Reaproveita perfeitamente a imagem "/logo.png" que está salva no seu diretório public
+      // Envia a OS estruturada com os relacionamentos do Supabase
       doc.write(gerarHtmlOS(os, "/logo.png"));
       doc.close();
     }
