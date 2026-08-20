@@ -10,6 +10,7 @@ const CATEGORIAS = [
   'Marketing e Vendas', 
   'Software e Ferramentas', 
   'Impostos e Taxas', 
+  'Despesas Fixas',
   'Outros'
 ];
 
