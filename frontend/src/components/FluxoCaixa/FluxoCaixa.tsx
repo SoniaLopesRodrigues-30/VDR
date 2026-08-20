@@ -3,10 +3,10 @@ import React, { useState } from 'react';
 import { ArrowUpCircle, ArrowDownCircle, Wallet, Plus, X, Printer, Calendar } from 'lucide-react';
 import { useFluxoCaixa } from './useFluxoCaixa';
 import { gerarHtmlCaixa } from './LayoutImpressaoCaixa';
+// src/components/FluxoCaixa/FluxoCaixa.tsx
 
-// Importação dos subcomponentes modulares estruturados
-import { FormularioCaixa } from './FormularioCaixa';
-import { TabelaCaixa } from './TabelaCaixa';
+import { FormularioCaixa } from './FormularioCaixa.tsx';
+import { TabelaCaixa } from './TabelaCaixa.tsx';
 
 export default function FluxoCaixa() {
   const { 
