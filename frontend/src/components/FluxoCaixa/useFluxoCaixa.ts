@@ -70,14 +70,18 @@ export function useFluxoCaixa() {
     }
 
     try {
+       const dataFormatada = form.data.includes('/') 
+        ? form.data.split('/').reverse().join('-') // Converte DD/MM/AAAA para AAAA-MM-DD
+        : form.data;
       const payload = {
         descricao: form.descricao,
-        cliente_fornecedor: form.cliente_fornecedor,
+        cliente_fornecedor: form.cliente_fornecedor || null, // Evita strings vazias
         valor: Number(form.valor),
-        data: form.data,
-        conta_contabil: form.conta_contabil,
-        forma_pagamento: form.forma_pagamento,
-        tipo: form.tipo
+        data: dataFormatada,
+        conta_contabil: form.conta_contabil || null,
+        forma_pagamento: form.forma_pagamento || null,
+        // Força o texto para minúsculas e remove acentos/espaços bobos
+        tipo: form.tipo.toLowerCase().trim()
       };
 
       if (idEditando) {
