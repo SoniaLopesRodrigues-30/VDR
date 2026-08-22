@@ -9,9 +9,10 @@ import Orcamentos from './components/Orcamentos/Orcamentos';
 import OrdensServico from './components/OrdServ/OrdensServico';
 import Nfe from './Nfe';
 import FluxoCaixa from './components/FluxoCaixa/FluxoCaixa';
-
 // IMPORTAÇÃO DO NOVO COMPONENTE DE ORDENS DE COMPRA
-import OrdemCompra  from './components/OrdemCompra/OrdemCompra'; 
+import { OrdemCompra } from './components/OrdemCompra/OrdemCompra';
+
+
 
 // IMPORTAÇÃO CORRETA DO COMPONENTE REAL DE PRODUTOS
 import Produtos from './components/Produtos/Produtos';

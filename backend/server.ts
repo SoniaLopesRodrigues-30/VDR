@@ -8,14 +8,12 @@ dotenv.config();
 
 const app = express();
 
-// ALTERAÇÃO CRÍTICA: Porta atualizada para 5001 devido ao conflito do sistema operacional
 const PORT = 5001;
 
 // Middleware essencial para ler os payloads em JSON enviados pelo React
 app.use(express.json());
 
-// CORREÇÃO CRÍTICA DO CORS: Substituição do bloco manual pela biblioteca oficial.
-// Isso resolve o erro "TypeError: Failed to fetch" limpando as requisições OPTIONS (Preflight) do navegador.
+
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

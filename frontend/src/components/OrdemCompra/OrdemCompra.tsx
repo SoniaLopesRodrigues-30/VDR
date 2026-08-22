@@ -1,5 +1,5 @@
-import React from 'react';
-import { useOrdemCompra } from './useOrdemCompra';
+import React from "react";
+import { useOrdemCompra } from "./useOrdemCompra";
 
 export function OrdemCompra() {
   const {
@@ -20,7 +20,6 @@ export function OrdemCompra() {
       </div>
       
       <form onSubmit={enviarOrdemCompra} className="space-y-6">
-        {/* Cabeçalho da OC */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">ID ou Código do Fornecedor</label>
@@ -44,7 +43,6 @@ export function OrdemCompra() {
           </div>
         </div>
 
-        {/* Listagem Dinâmica de Itens/Insumos */}
         <div className="space-y-3">
           <div className="flex justify-between items-center border-t pt-4">
             <h3 className="font-bold text-gray-800 text-lg">Insumos Solicitados</h3>
@@ -65,7 +63,7 @@ export function OrdemCompra() {
                   type="text" 
                   placeholder="Código do item" 
                   className="w-full p-2 bg-white border border-gray-300 rounded-md text-sm"
-                  value={item.insumo_id}
+                  value={item.insumo_id || ''}
                   onChange={e => atualizarItem(index, 'insumo_id', e.target.value)} 
                   required 
                 />
@@ -99,7 +97,6 @@ export function OrdemCompra() {
                   type="button" 
                   onClick={() => removerItem(index)}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-md transition mb-0.5"
-                  title="Remover item"
                 >
                   🗑️
                 </button>
@@ -108,36 +105,24 @@ export function OrdemCompra() {
           ))}
         </div>
 
-        {/* Resumo Financeiro */}
         <div className="flex justify-between items-center bg-gray-900 p-4 rounded-xl text-white">
           <span className="text-sm font-medium tracking-wide uppercase text-gray-400">Total Previsto da OC:</span>
           <span className="text-2xl font-black">R$ {valorTotalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
 
-        {/* Painel Dinâmico de Resposta/Bloqueio */}
         {status && (
           <div className={`p-4 rounded-xl border-l-4 shadow-sm ${
-            status.tipo === 'erro' 
-              ? 'bg-red-50 text-red-900 border-red-600' 
-              : 'bg-green-50 text-green-900 border-green-600'
+            status.tipo === 'erro' ? 'bg-red-50 text-red-900 border-red-600' : 'bg-green-50 text-green-900 border-green-600'
           }`}>
-            <h4 className="font-bold flex items-center gap-2">
-              {status.tipo === 'erro' ? '🛑 Compra Recusada pelo ERP' : '🎉 Tudo Certo!'}
-            </h4>
+            <h4 className="font-bold">{status.tipo === 'erro' ? '🛑 Compra Recusada' : '🎉 Tudo Certo!'}</h4>
             <p className="text-sm font-medium mt-1">{status.titulo}</p>
-            {status.detalhe && (
-              <p className="text-xs font-mono mt-3 bg-white p-3 rounded-lg border border-red-200 text-red-700 leading-relaxed">
-                {status.detalhe}
-              </p>
-            )}
           </div>
         )}
 
-        {/* Botão de Submissão */}
         <button 
           type="submit" 
           disabled={loading} 
-          className="w-full p-3.5 bg-gray-950 text-white font-bold rounded-xl hover:bg-gray-800 active:scale-[0.99] transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+          className="w-full p-3.5 bg-gray-950 text-white font-bold rounded-xl hover:bg-gray-800 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
           {loading ? 'Consultando saúde de caixa futura...' : 'Validar e Emitir Ordem de Compra'}
         </button>
