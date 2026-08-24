@@ -1,132 +1,175 @@
-// src/components/OrdemCompra/useOrdemCompra.ts
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
 
-interface ItemOrdem {
+export interface ItemOC {
+  id?: string;
   insumo_id: string;
   quantidade: number;
   valor_unitario: number;
 }
 
+export interface OrdemCompra {
+  id: string;
+  fornecedor_id: number; // Mapeado a partir da tabela 'clientes'
+  data_vencimento: string;
+  status: 'Pendente' | 'Aprovada' | 'Recusada';
+  valor_total: number;
+  ordens_compra_itens?: ItemOC[];
+  clientes?: { nome: string }; // Tabela unificada usada como fornecedor
+}
+
 export function useOrdemCompra() {
-  const [fornecedorId, setFornecedorId] = useState<string>('');
-  const [dataVencimento, setDataVencimento] = useState<string>('');
-  const [itens, setItens] = useState<ItemOrdem[]>([{ insumo_id: '', quantidade: 0, valor_unitario: 0 }]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [status, setStatus] = useState<{ tipo: 'erro' | 'sucesso'; titulo: string; detalhe?: string } | null>(null);
+  const [busca, setBusca] = useState('');
+  const [carregando, setCarregando] = useState(true);
+  const [ordens, setOrdens] = useState<OrdemCompra[]>([]);
+  const [fornecedores, setFornecedores] = useState<any[]>([]);
+  const [itens, setItens] = useState<ItemOC[]>([]);
+  const [idEditando, setIdEditando] = useState<string | null>(null);
+  const [statusAlerta, setStatusAlerta] = useState<{ tipo: 'sucesso' | 'erro'; titulo: string } | null>(null);
+  const [loadingAcao, setLoadingAcao] = useState(false);
+  
+  const [form, setForm] = useState({ 
+    fornecedorId: '', 
+    dataVencimento: '', 
+    status: 'Pendente' as const 
+  });
 
-  // Cálculo dinâmico do valor total da Ordem de Compra
-  const valorTotalGeral = itens.reduce((acc, item) => acc + (item.quantidade * item.valor_unitario), 0);
+  // Carrega os dados seguindo o padrão exato da Ordem de Serviço
+  const carregarDados = useCallback(async () => {
+    try {
+      setCarregando(true);
+      
+      // Carrega os fornecedores ativos (vindos da tabela unificada 'clientes')
+      const { data: dadosFornecedores } = await supabase
+        .from('clientes')
+        .select('id, nome')
+        .eq('status', 'Ativo');
+        
+      if (dadosFornecedores) setFornecedores(dadosFornecedores);
 
-  const adicionarItem = () => {
-    setItens([...itens, { insumo_id: '', quantidade: 0, valor_unitario: 0 }]);
-  };
-
-  const atualizarItem = (index: number, campo: keyof ItemOrdem, valor: string | number) => {
-    const novosItens = [...itens];
-    novosItens[index] = {
-      ...novosItens[index],
-      [campo]: valor
-    };
-    setItens(novosItens);
-  };
-
-  const removerItem = (index: number) => {
-    if (itens.length > 1) {
-      setItens(itens.filter((_, i) => i !== index));
+      // Carrega as ordens de compra emitidas e seus itens correspondentes
+      const { data: dadosOC, error } = await supabase
+        .from('ordens_compra')
+        .select('*, clientes(nome), ordens_compra_itens(*)');
+        
+      if (error) throw error;
+      setOrdens((dadosOC as OrdemCompra[]) || []);
+    } catch (error) {
+      console.error('Erro ao buscar dados do Supabase:', error);
+    } finally {
+      setCarregando(false);
     }
-  };
+  }, []);
 
-  const enviarOrdemCompra = async (e: React.FormEvent) => {
+  useEffect(() => {
+    carregarDados();
+  }, [carregarDados]);
+
+  // Função para salvar a Ordem de Compra simulando o fluxo de caixa futuro
+  const handleSalvarOC = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setStatus(null);
-
-    if (!fornecedorId || !dataVencimento || valorTotalGeral <= 0) {
-      setStatus({ tipo: 'erro', titulo: 'Formulário inválido', detalhe: 'Verifique se todos os campos estão preenchidos.' });
-      setLoading(false);
+    if (!form.fornecedorId || !form.dataVencimento || itens.length === 0) {
+      alert('Preencha os campos obrigatórios e adicione ao menos um insumo.');
       return;
     }
 
+    setLoadingAcao(true);
+    setStatusAlerta(null);
+
+    const valorTotalGeral = itens.reduce((acc, item) => acc + (item.quantidade * item.valor_unitario), 0);
+    const codigoOC = idEditando || `OC-${Math.floor(1000 + Math.random() * 9000)}`;
+
     try {
-      // 1. CHAMA A RPC DO SUPABASE PARA PREVER O SALDO NA DATA DO VENCIMENTO
-      const { data: saldoProjetado, error: rpcError } = await supabase
-        .rpc('calcular_saldo_projetado', { data_alvo: dataVencimento });
+      // --- ANÁLISE DE SAÚDE DE CAIXA FUTURA (Padrão PCP) ---
+      // Soma todas as entradas e saídas existentes no caixa para verificar a viabilidade da compra
+      const { data: transacoes } = await supabase.from('fluxo_caixa').select('valor, tipo');
+      const saldoAtual = transacoes?.reduce((acc, t) => t.tipo === 'Entrada' ? acc + t.valor : acc - t.valor, 0) || 0;
 
-      if (rpcError) throw rpcError;
-
-      const saldoFuturo = Number(saldoProjetado || 0);
-
-      // 2. TRAVA DO CHEQUE ESPECIAL (9%): Bloqueia se o saldo projetado for menor que o custo da compra
-      if (saldoFuturo - valorTotalGeral < 0) {
-        setStatus({
+      if (saldoAtual < valorTotalGeral) {
+        setStatusAlerta({
           tipo: 'erro',
-          titulo: '🛑 COMPRA REJEITADA AUTOMATICAMENTE',
-          detalhe: `O saldo projetado para ${dataVencimento.split('-').reverse().join('/')} é de R$ ${saldoFuturo.toFixed(2)}. Esta compra de R$ ${valorTotalGeral.toFixed(2)} empurrará a metalúrgica para o cheque especial (juros de 9% ao mês).`
+          titulo: `Saldo futuro insuficiente. Saldo atual: R$ ${saldoAtual.toFixed(2)}. Valor da compra: R$ ${valorTotalGeral.toFixed(2)}.`
         });
-        setLoading(false);
-        return;
+        setLoadingAcao(false);
+        return; // Aborta a geração caso o caixa não sustente a compra
       }
 
-      // 3. SE PASSAR NA TRAVA, SALVA O CABEÇALHO DA ORDEM DE COMPRA
-      const { data: novaOC, error: ocError } = await supabase
-        .from('ordens_compra')
-        .insert([{ 
-          fornecedor_id: fornecedorId, 
-          data_vencimento_financeiro: dataVencimento, 
-          valor_total: valorTotalGeral, 
-          status: 'APROVADO' 
-        }])
-        .select()
-        .single();
+      // --- INSERÇÃO / ATUALIZAÇÃO DA ORDEM DE COMPRA MESTRE ---
+      if (idEditando) {
+        await supabase.from('ordens_compra')
+          .update({ 
+            fornecedor_id: Number(form.fornecedorId), 
+            data_vencimento: form.dataVencimento, 
+            status: 'Aprovada', 
+            valor_total: valorTotalGeral 
+          })
+          .eq('id', idEditando);
+          
+        await supabase.from('ordens_compra_itens').delete().eq('oc_id', idEditando);
+      } else {
+        await supabase.from('ordens_compra')
+          .insert([{ 
+            id: codigoOC, 
+            fornecedor_id: Number(form.fornecedorId), 
+            data_vencimento: form.dataVencimento, 
+            status: 'Aprovada', 
+            valor_total: valorTotalGeral 
+          }]);
+      }
 
-      if (ocError) throw ocError;
-
-      // 4. SALVA OS ITENS VINCULADOS À ORDEM DE COMPRA CRIADA
-      const itensFormatados = itens.map(item => ({
-        ordem_compra_id: novaOC.id,
+      // --- INSERÇÃO DOS DETALHES (INSUMOS SOLICITADOS) ---
+      const payloadItens = itens.map(item => ({
+        oc_id: codigoOC,
         insumo_id: item.insumo_id,
         quantidade: item.quantidade,
         valor_unitario: item.valor_unitario
       }));
 
-      const { error: itensError } = await supabase
-        .from('itens_ordem_compra')
-        .insert(itensFormatados);
+      await supabase.from('ordens_compra_itens').insert(payloadItens);
 
-      if (itensError) throw itensError;
-
-      // Retorno de Sucesso para a Tela (A trigger já criou o lançamento no caixa)
-      setStatus({
-        tipo: 'sucesso',
-        titulo: '🎉 Ordem de Compra Emitida!',
-        detalhe: `R$ ${valorTotalGeral.toFixed(2)} agendados automaticamente como despesa em seu fluxo de caixa.`
-      });
-
-      // Limpa os campos após o sucesso
-      setFornecedorId('');
-      setDataVencimento('');
-      setItens([{ insumo_id: '', quantidade: 0, valor_unitario: 0 }]);
-
-    } catch (err: any) {
-      console.error(err);
-      setStatus({ 
-        tipo: 'erro', 
-        titulo: 'Erro ao processar no banco de dados', 
-        detalhe: err.message || 'Verifique sua conexão ou a estrutura das tabelas.' 
-      });
+      // --- LANÇAMENTO AUTOMÁTICO DE SAÍDA NO FLUXO DE CAIXA ---
+      await supabase.from('fluxo_caixa').insert([{
+        descricao: `Pagamento ref. ${codigoOC}`,
+        valor: valorTotalGeral,
+        tipo: 'Saída',
+        data: new Date(form.dataVencimento).toISOString() // Lança na data do vencimento programado
+      }]);
+      
+      setStatusAlerta({ tipo: 'sucesso', titulo: `Ordem de Compra ${codigoOC} emitida e provisionada no caixa!` });
+      
+      // Limpeza do formulário idêntico à OS
+      setForm({ fornecedorId: '', dataVencimento: '', status: 'Pendente' });
+      setItens([]);
+      setIdEditando(null);
+      await carregarDados();
+    } catch (error) {
+      alert('Erro ao salvar os dados da Ordem de Compra no Supabase.');
     } finally {
-      setLoading(false);
+      setLoadingAcao(false);
     }
   };
 
+  const iniciarEdicao = (oc: OrdemCompra) => {
+    setIdEditando(oc.id);
+    setForm({ 
+      fornecedorId: String(oc.fornecedor_id), 
+      dataVencimento: oc.data_vencimento, 
+      status: oc.status 
+    });
+    setItens(oc.ordens_compra_itens || []);
+  };
+
+  const ordensFiltradas = useMemo(() => {
+    const termo = busca.toLowerCase().trim();
+    if (!termo) return ordens;
+    return ordens.filter(oc => 
+      oc.id.toLowerCase().includes(termo) || 
+      oc.clientes?.nome?.toLowerCase().includes(termo)
+    );
+  }, [ordens, busca]);
+
   return {
-    fornecedorId, setFornecedorId,
-    dataVencimento, setDataVencimento,
-    itens, adicionarItem, atualizarItem, removerItem,
-    valorTotalGeral,
-    loading,
-    status,
-    enviarOrdemCompra
+    busca, setBusca, carregando, fornecedores, itens, setItens, form, setForm, idEditando, setIdEditando,
+    statusAlerta, loadingAcao, ordensFiltradas, handleSalvarOC, iniciarEdicao
   };
 }
