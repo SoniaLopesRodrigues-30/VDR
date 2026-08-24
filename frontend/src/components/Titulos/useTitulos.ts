@@ -10,6 +10,7 @@ export interface Titulo {
   valor_parcela: number;
   data_vencimento: string;
   status: 'Pendente' | 'Pago' | 'Atrasado' | 'Cancelado';
+  tipo: 'Receber' | 'Pagar';
   clientes?: { nome: string };
 }
 
@@ -17,11 +18,11 @@ export function useTitulos() {
   const [busca, setBusca] = useState('');
   const [carregando, setCarregando] = useState(true);
   const [titulos, setTitulos] = useState<Titulo[]>([]);
+  const [tituloEmEdicao, setTituloEmEdicao] = useState<Titulo | null>(null);
 
   const carregarTitulos = useCallback(async () => {
     try {
       setCarregando(true);
-      // Busca os títulos trazendo o nome legível do cliente associado
       const { data, error } = await supabase
         .from('titulos_receber')
         .select('*, clientes(nome)')
@@ -38,40 +39,113 @@ export function useTitulos() {
 
   useEffect(() => { carregarTitulos(); }, [carregarTitulos]);
 
-  // Função disparada ao clicar em "Liquidar/Baixar Boleto"
+  // Ativa o modo de edição salvando o título selecionado no estado
+  const iniciarEdicao = (titulo: Titulo) => {
+    if (titulo.status === 'Pago') {
+      alert('Títulos que já foram pagos ou liquidados não podem ser editados.');
+      return;
+    }
+    setTituloEmEdicao(titulo);
+  };
+
+  // Limpa o estado de edição
+  const cancelarEdicao = () => {
+    setTituloEmEdicao(null);
+  };
+
+  
+  // FUNÇÃO DE ATUALIZAÇÃO (Faltava declarar/retornar esta função no escopo interno)
+  const handleAtualizarTitulo = async (id: string, dadosAtualizados: Partial<Titulo>) => {
+    try {
+      const { error } = await supabase
+        .from('titulos_receber')
+        .update(dadosAtualizados)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      alert('Título atualizado com sucesso!');
+      setTituloEmEdicao(null); // Fecha o modo de edição
+      await carregarTitulos(); // Recarrega a tabela de registros
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao atualizar o título no banco de dados.');
+    }
+  };
+
+  // Função dinâmica para efetuar o pagamento/recebimento
   const handleBaixarTitulo = async (titulo: Titulo) => {
-    if (!confirm(`Confirmar o recebimento da parcela ${titulo.parcela} da NF-e ${titulo.nfe_id} no valor de R$ ${Number(titulo.valor_parcela).toFixed(2)}?`)) return;
+    const acaoTexto = titulo.tipo === 'Pagar' ? 'pagamento' : 'recebimento';
+    if (!confirm(`Confirmar o ${acaoTexto} do título ref. ${titulo.nfe_id} no valor de R$ ${Number(titulo.valor_parcela).toFixed(2)}?`)) return;
 
     try {
-      // 1. Atualiza o status do título para Pago
-      await supabase
-        .from('titulos_receber')
-        .update({ status: 'Pago' })
-        .eq('id', titulo.id);
-
-      // 2. Integra instantaneamente com o seu fluxo de caixa existente
+      await supabase.from('titulos_receber').update({ status: 'Pago' }).eq('id', titulo.id);
+      
       await supabase.from('fluxo_caixa').insert([{
-        descricao: `Recebimento NF-e ${titulo.nfe_id} - Parc. ${titulo.parcela}`,
+        descricao: `${titulo.tipo === 'Pagar' ? 'Pagamento' : 'Recebimento'} Ref. ${titulo.nfe_id} - Parc. ${titulo.parcela}`,
         valor: titulo.valor_parcela,
-        tipo: 'Entrada',
+        tipo: titulo.tipo === 'Pagar' ? 'Saída' : 'Entrada',
         data: new Date().toISOString()
       }]);
 
-      alert('Título liquidado e lançado no Fluxo de Caixa!');
+      alert(`Título liquidado e registrado no Fluxo de Caixa!`);
       await carregarTitulos();
     } catch (error) {
       alert('Erro ao processar a baixa do título.');
     }
   };
+   //deletar os lançamentos de títulos
+    const handleDeletarTitulo = async (id: string, nfeId: string) => {
+    if (!confirm(`Tem certeza absoluta que deseja excluir permanentemente o título ref. ${nfeId}?`)) {
+        return;
+    }
 
+    try {
+        const { error } = await supabase
+        .from('titulos_receber')
+        .delete()
+        .eq('id', id);
+
+        if (error) throw error;
+
+        alert('Título deletado com sucesso do sistema!');
+        
+        // Se o título deletado era o que estava sendo editado, limpa o formulário
+        if (tituloEmEdicao?.id === id) {
+        cancelarEdicao();
+        }
+
+        await carregarTitulos(); // Recarrega os registros da tabela
+    } catch (error) {
+        console.error(error);
+        alert('Erro ao tentar deletar o título no Supabase.');
+    }
+    };
+
+
+  // Lógica de pesquisa local combinada
   const titulosFiltrados = useMemo(() => {
     const termo = busca.toLowerCase().trim();
     if (!termo) return titulos;
     return titulos.filter(t => 
       t.nfe_id.toLowerCase().includes(termo) || 
-      t.clientes?.nome?.toLowerCase().includes(termo)
+      t.clientes?.nome?.toLowerCase().includes(termo) ||
+      t.tipo.toLowerCase().includes(termo)
     );
   }, [titulos, busca]);
 
-  return { busca, setBusca, carregando, titulosFiltradas: titulosFiltrados, handleBaixarTitulo, carregarTitulos };
+  // Retorno contendo exatamente todas as propriedades mapeadas pelo Titulos.tsx
+  return { 
+    busca, 
+    setBusca, 
+    carregando, 
+    titulosFiltrados, 
+    handleBaixarTitulo, 
+    handleAtualizarTitulo, 
+    carregarTitulos,
+    tituloEmEdicao,
+    handleDeletarTitulo,
+    iniciarEdicao,
+    cancelarEdicao 
+  };
 }

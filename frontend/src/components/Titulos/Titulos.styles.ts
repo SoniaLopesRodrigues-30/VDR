@@ -75,13 +75,16 @@ export const dropdownSugestoesStyle: React.CSSProperties = {
   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
 };
 
-export const itemSugestaoStyle: React.CSSProperties = {
+// Altere o itemSugestaoStyle no seu Titulos.styles.ts para este formato de função:
+export const itemSugestaoStyle = (isHovered: boolean): React.CSSProperties => ({
   padding: '10px 12px',
   fontSize: '14px',
   color: '#1f2937',
   cursor: 'pointer',
-  borderBottom: '1px solid #f3f4f6'
-};
+  borderBottom: '1px solid #f3f4f6',
+  backgroundColor: isHovered ? '#f1f5f9' : '#ffffff' // O hover agora é processado aqui dentro!
+});
+
 
 export const itemSugestaoHoverStyle: React.CSSProperties = {
   backgroundColor: '#f1f5f9'
@@ -127,14 +130,26 @@ export const tdStyle: React.CSSProperties = {
   color: '#334155'
 };
 
-export const badgeStyle = (status: string): React.CSSProperties => ({
-  padding: '4px 8px',
-  borderRadius: '4px',
-  fontSize: '12px',
-  fontWeight: 'bold',
-  backgroundColor: status === 'Pago' ? '#dcfce7' : '#fef3c7',
-  color: status === 'Pago' ? '#15803d' : '#b45309'
-});
+// Substitua a função badgeStyle no final do seu Titulos.styles.ts por esta:
+export const badgeStyle = (status: string, tipo: string): React.CSSProperties => {
+  let bgColor = '#fef3c7'; // Pendente (Amarelo)
+  let textColor = '#b45309';
+
+  if (status === 'Pago') {
+    bgColor = tipo === 'Pagar' ? '#fee2e2' : '#dcfce7'; // Vermelho claro para Pagar, Verde para Receber
+    textColor = tipo === 'Pagar' ? '#b91c1c' : '#15803d';
+  }
+
+  return {
+    padding: '4px 8px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    backgroundColor: bgColor,
+    color: textColor
+  };
+};
+
 
 export const botaoAcaoStyle: React.CSSProperties = {
   backgroundColor: '#16a34a',

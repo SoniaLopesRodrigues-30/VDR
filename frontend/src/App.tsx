@@ -58,7 +58,7 @@ export default function App() {
           <MenuLink to="/produtos"><Package size={20} /> Produtos</MenuLink>
           <MenuLink to="/orcamentos"><FileText size={20} /> Orçamentos</MenuLink>
           <MenuLink to="/ordens"><ClipboardList size={20} /> Ordens de Serviço</MenuLink>          
-          <MenuLink to="/titulos"><Landmark size={20} /> Contas a Receber</MenuLink>
+          <MenuLink to="/titulos"><Landmark size={20} /> Contas a Pagar/Receber</MenuLink>
           {/* LINK INSERIDO NO MENU FINANCEIRO/SUPRIMENTOS */}
           <MenuLink to="/compras"><ShoppingCart size={20} /> Ordens de Compra</MenuLink>          
           <MenuLink to="/nfe"><Receipt size={20} /> Nota Fiscal (NF-e)</MenuLink>
