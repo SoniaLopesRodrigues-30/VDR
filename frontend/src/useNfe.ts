@@ -1,6 +1,9 @@
 import { useState, useMemo } from 'react';
 import type { NotaFiscal } from './useNfeForm';
 import { downloadXml, downloadPdfBase64 } from './nfeUtils';
+// IMPORTAÇÃO DA CONEXÃO DO SUPABASE
+import { supabase } from './services/supabaseClient';
+
 
 export function useNfe() {
   const [busca, setBusca] = useState('');
@@ -27,7 +30,7 @@ export function useNfe() {
       finalidadeEmissao: '1 - NF-e Normal',
       dataSaida: '20/07/2026',
       horaSaida: '14:30',
-      pagamento: { formaPagamento: 'Pix', meioPagamento: 'Pagamento À Vista' },
+      pagamento: { formaPagamento: 'Boleto', meioPagamento: 'Pagamento À Vista' }, // Ajustado para corresponder ao novo fluxo
       transporte: {
         modalidadeFrete: '0 - Contratação por conta do Remetente (CIF)',
         transportadorNome: 'TransLog Transportes S.A.',
@@ -63,6 +66,7 @@ export function useNfe() {
     setModalAberto(false);
 
     try {
+      // 1. Envia os dados para a sua API local que monta e transmite o XML à SEFAZ
       const response = await fetch('http://localhost:5001/v1/nfe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -83,6 +87,48 @@ export function useNfe() {
 
         if (data.xmlCompleto) downloadXml(data.xmlCompleto, data.numeroNota);
         if (data.pdfDanfe) downloadPdfBase64(data.pdfDanfe, data.numeroNota);
+
+        // --- AUTOMAÇÃO GERAÇÃO DE BOLETOS / TÍTULOS NO SUPABASE ---
+        // Só gera boletos automáticos se for selecionada a opção 'Boleto'
+        if (novaNota.pagamento.formaPagamento === 'Boleto') {
+          // Obtém o número de parcelas (se não mapeado, assume 1x por segurança)
+          const numParcelas = (novaNota as any).parcelas || 1;
+          const valorDaParcela = novaNota.valorLiquido / numParcelas;
+          const payloadTitulos = [];
+
+          // Calcula a data base a partir do primeiro vencimento informado no formulário
+          const dataPrimeiroVencimento = novaNota.dataSaida 
+            ? new Date(novaNota.dataSaida.split('/').reverse().join('-')) 
+            : new Date();
+
+          for (let i = 1; i <= numParcelas; i++) {
+            const dataVencimentoParcela = new Date(dataPrimeiroVencimento);
+            // Empurra o vencimento de 30 em 30 dias para cada parcela subsequente
+            dataVencimentoParcela.setDate(dataVencimentoParcela.getDate() + ((i - 1) * 30));
+
+            payloadTitulos.push({
+              nfe_id: data.numeroNota, // Número gerado de retorno da SEFAZ
+              cliente_id: (novaNota as any).clienteId || null, // ID mapeado da tabela clientes
+              parcela: i,
+              valor_parcela: valorDaParcela,
+              data_vencimento: dataVencimentoParcela.toISOString().split('T')[0],
+              status: 'Pendente'
+            });
+          }
+
+          // Grava em lote as parcelas de cobrança diretamente no Supabase
+          const { error: erroSupabase } = await supabase
+            .from('titulos_receber')
+            .insert(payloadTitulos);
+
+          if (erroSupabase) {
+            console.error('Erro ao salvar boletos no Supabase:', erroSupabase);
+            alert('Nota autorizada, mas houve um erro ao provisionar os boletos no contas a receber.');
+          } else {
+            alert(`🎉 NF-e emitida com sucesso! ${numParcelas} parcela(s) lançada(s) no Contas a Receber.`);
+          }
+        }
+
       } else {
         marcarComoCancelada(idProvisorio);
         alert(data.mensagem || 'Rejeição encontrada na estrutura fiscal.');
