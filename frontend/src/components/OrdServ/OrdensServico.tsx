@@ -1,3 +1,4 @@
+// src/components/OrdensServico/OrdensServico.tsx
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { Wrench, Search } from 'lucide-react';
@@ -6,7 +7,6 @@ import * as S from './OrdensServico.styles';
 // Importação dos subcomponentes novos e do layout
 import { FormularioOS } from './FormularioOS';
 import { ListaOS } from './ListaOS';
-
 import { gerarHtmlOS } from './LayoutImpressaoOS';
 
 interface ItemOS {
@@ -33,14 +33,13 @@ export default function OrdensServico() {
 
   const carregarDadosDoBanco = async () => {
     try {
-      setBusca('');
       setCarregando(true);
       
       // Busca clientes ativos para a seleção do formulário
       const { data: dadosClientes } = await supabase.from('clientes').select('id, nome').eq('status', 'Ativo');
       if (dadosClientes) setClientes(dadosClientes);
       
-      // Ajustado para buscar TODOS os campos do cliente (clientes(*)) para alimentar o cabeçalho impresso
+      // Busca ordens com os relacionamentos necessários
       const { data: dadosOS } = await supabase.from('ordens_servico').select('*, clientes(*), ordens_servico_itens(*)');
       if (dadosOS) setOrdens(dadosOS);
     } catch (err) {
@@ -50,7 +49,9 @@ export default function OrdensServico() {
     }
   };
 
-  useEffect(() => { carregarDadosDoBanco(); }, []);
+  useEffect(() => { 
+    carregarDadosDoBanco(); 
+  }, []);
 
   const incluirItemNaGrid = () => {
     if (!especificacao || qtd <= 0 || valUnit <= 0 || !dataItem) {
@@ -58,8 +59,23 @@ export default function OrdensServico() {
       return;
     }
     setItens([...itens, { produto_id: especificacao, quantidade: qtd, valor_unitario: valUnit, data_item: dataItem }]);
-    setEspecificacao(''); setQtd(1); setValUnit(0); setDataItem('');
+    setEspecificacao(''); 
+    setQtd(1); 
+    setValUnit(0); 
+    setDataItem('');
   };
+
+  const limparFormulario = () => {
+    setClienteId(''); 
+    setValidade(''); 
+    setItens([]); 
+    setIdEditando(null);
+    setEspecificacao('');
+    setQtd(1);
+    setValUnit(0);
+    setDataItem('');
+  };
+
   const handleSalvarOS = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clienteId || !validade || itens.length === 0) {
@@ -71,42 +87,51 @@ export default function OrdensServico() {
 
     try {
       if (idEditando) {
-        await supabase.from('ordens_servico').update({ cliente_id: Number(clienteId), validade, valor_total: valorTotal }).eq('id', idEditando);
-        await supabase.from('ordens_servico_itens').delete().eq('os_id', idEditando);
+        const { error: errorOS } = await supabase.from('ordens_servico').update({ cliente_id: Number(clienteId), validade, valor_total: valorTotal }).eq('id', idEditando);
+        if (errorOS) throw errorOS;
+
+        const { error: errorDel } = await supabase.from('ordens_servico_itens').delete().eq('os_id', idEditando);
+        if (errorDel) throw errorDel;
       } else {
-        await supabase.from('ordens_servico').insert([{ id: codigoOS, cliente_id: Number(clienteId), validade, status: 'Em Execução', valor_total: valorTotal }]);
+        const { error: errorIns } = await supabase.from('ordens_servico').insert([{ id: codigoOS, cliente_id: Number(clienteId), validade, status: 'Em Execução', valor_total: valorTotal }]);
+        if (errorIns) throw errorIns;
       }
+
       const payloadItens = itens.map(item => ({
-        os_id: codigoOS, produto_id: item.produto_id, quantidade: item.quantidade, valor_unitario: item.valor_unitario, data_item: item.data_item
+        os_id: codigoOS, 
+        produto_id: item.produto_id, 
+        quantidade: item.quantidade, 
+        valor_unitario: item.valor_unitario, 
+        data_item: item.data_item
       }));
-      await supabase.from('ordens_servico_itens').insert(payloadItens);
+
+      const { error: errorItens } = await supabase.from('ordens_servico_itens').insert(payloadItens);
+      if (errorItens) throw errorItens;
+
       alert('Ordem de serviço gravada com sucesso!');
-      
-      // ✅ CORREÇÃO: Reseta todos os estados limpando a edição por completo
-      setClienteId(''); 
-      setValidade(''); 
-      setItens([]); 
-      setIdEditando(null);
+      limparFormulario();
       await carregarDadosDoBanco();
     } catch (error) {
+      console.error(error);
       alert('Erro ao processar salvamento no Supabase.');
     }
   };
 
-
-    // ✅ NOVA FUNÇÃO: Ativa o modo de edição injetando os itens na Grid
+  // Ativa o modo de edição injetando os itens na Grid
   const ativarEdicaoOS = (os: any) => {
+    if (os.status === 'Finalizada') {
+      alert('Ordens de Serviço já finalizadas não podem ser alteradas.');
+      return;
+    }
     setIdEditando(os.id);
     setClienteId(os.cliente_id.toString());
     
-    // Formata a data para o padrão do input (YYYY-MM-DD)
     if (os.validade) {
       setValidade(os.validade.split('T')[0]);
     } else {
       setValidade('');
     }
 
-    // Carrega os itens daquela OS específica para dentro da grid editável
     if (os.ordens_servico_itens) {
       const itensFormatados = os.ordens_servico_itens.map((item: any) => ({
         produto_id: item.produto_id,
@@ -120,25 +145,41 @@ export default function OrdensServico() {
     }
   };
 
-
   const handleFinalizarOS = async (os: any) => {
+    if (os.status === 'Finalizada') {
+      alert('Esta Ordem de Serviço já se encontra encerrada.');
+      return;
+    }
     if (!confirm(`Finalizar a ${os.id}? O valor total irá automaticamente para o fluxo de caixa como receita.`)) return;
+    
+    // CORREÇÃO: Data formatada de forma limpa (YYYY-MM-DD) para respeitar os relatórios
+    const dataLimpa = new Date().toISOString().substring(0, 10);
+
     try {
-      await supabase.from('ordens_servico').update({ status: 'Finalizada' }).eq('id', os.id);
-      await supabase.from('fluxo_caixa').insert([{
-        descricao: `Faturamento OS ref. ${os.id}`, valor: os.valor_total, tipo: 'Entrada', data: new Date().toISOString()
+      const { error: errorOS } = await supabase.from('ordens_servico').update({ status: 'Finalizada' }).eq('id', os.id);
+      if (errorOS) throw errorOS;
+
+      const { error: errorCaixa } = await supabase.from('fluxo_caixa').insert([{
+        descricao: `Faturamento OS ref. ${os.id}`, 
+        valor: os.valor_total, 
+        tipo: 'Entrada', 
+        data: dataLimpa,
+        conta_contabil: 'Prestação de Serviços',
+        forma_pagamento: 'Pix'
       }]);
+      if (errorCaixa) throw errorCaixa;
+
       alert('OS Finalizada e integrada ao caixa!');
       await carregarDadosDoBanco();
-    } catch (err) { alert('Erro ao processar faturamento no caixa.'); }
+    } catch (err) { 
+      alert('Erro ao processar faturamento no caixa.'); 
+    }
   };
 
   const lidarComImpressaoOS = (os: any) => {
     if (!os) return;
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
     iframe.style.width = '0';
     iframe.style.height = '0';
     iframe.style.border = '0';
@@ -147,18 +188,20 @@ export default function OrdensServico() {
     const doc = iframe.contentWindow?.document || iframe.contentDocument;
     if (doc) {
       doc.open();
-      // Envia a OS estruturada com os relacionamentos do Supabase
       doc.write(gerarHtmlOS(os, "/logo.png"));
       doc.close();
     }
 
-    setTimeout(() => { document.body.removeChild(iframe); }, 2000);
+    setTimeout(() => { 
+      document.body.removeChild(iframe); 
+    }, 2000);
   };
 
   const totalGeralCalculado = itens.reduce((acc, i) => acc + (i.quantidade * i.valor_unitario), 0);
+  
   const ordensFiltradas = ordens.filter(os => {
     const termo = busca.toLowerCase().trim();
-    return !termo || os.id.toLowerCase().includes(termo) || os.clientes?.nome?.toLowerCase().includes(termo);
+    return !termo || String(os.id).toLowerCase().includes(termo) || os.clientes?.nome?.toLowerCase().includes(termo);
   });
 
   return (
@@ -166,7 +209,26 @@ export default function OrdensServico() {
       <h2 style={S.tituloStyle}><Wrench size={26} /> Ordens de Serviço (OS)</h2>
 
       <FormularioOS 
-        {...{clientes, clienteId, setClienteId, validade, setValidade, itens, setItens, idEditando, setIdEditando, especificacao, setEspecificacao, qtd, setQtd, valUnit, setValUnit, dataItem, setDataItem, incluirItemNaGrid, handleSalvarOS, totalGeralCalculado}} 
+        clientes={clientes}
+        clienteId={clienteId}
+        setClienteId={setClienteId}
+        validade={validade}
+        setValidade={setValidade}
+        itens={itens}
+        setItens={setItens}
+        idEditando={idEditando}
+        cancelarEdicao={limparFormulario} // Ajuste: Adicionado callback de cancelamento
+        especificacao={especificacao}
+        setEspecificacao={setEspecificacao}
+        qtd={qtd}
+        setQtd={setQtd}
+        valUnit={valUnit}
+        setValUnit={setValUnit}
+        dataItem={dataItem}
+        setDataItem={setDataItem}
+        incluirItemNaGrid={incluirItemNaGrid}
+        handleSalvarOS={handleSalvarOS}
+        totalGeralCalculado={totalGeralCalculado}
       />
 
       <div style={S.buscaContainerStyle}>
@@ -175,7 +237,11 @@ export default function OrdensServico() {
       </div>
 
       <ListaOS 
-        {...{carregando, ordensFiltradas, setIdEditando, setClienteId, setValidade, setItens, handleFinalizarOS, lidarComImpressaoOS}} 
+        carregando={carregando}
+        ordensFiltradas={ordensFiltradas}
+        onEditarOS={ativarEdicaoOS} // AJUSTE: Passando a função estruturada que monta a grid
+        handleFinalizarOS={handleFinalizarOS}
+        lidarComImpressaoOS={lidarComImpressaoOS}
       />
     </div>
   );

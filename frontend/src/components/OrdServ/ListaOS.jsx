@@ -1,3 +1,4 @@
+// src/components/OrdensServico/ListaOS.jsx
 import React from 'react';
 import { Edit2, CheckSquare, Printer } from 'lucide-react';
 import * as S from './OrdensServico.styles';
@@ -5,10 +6,7 @@ import * as S from './OrdensServico.styles';
 export function ListaOS({
   carregando,
   ordensFiltradas,
-  setIdEditando,
-  setClienteId,
-  setValidade,
-  setItens,
+  onEditarOS, // CORREÇÃO: Recebe a função unificada e tratada vinda do componente pai
   handleFinalizarOS,
   lidarComImpressaoOS
 }) {
@@ -34,41 +32,19 @@ export function ListaOS({
             </div>
 
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <button 
-                type="button" 
-                // Altere apenas o bloco do onClick do botão de editar dentro de ListaOS.jsx:
-onClick={() => { 
-  setIdEditando(os.id); 
-  setClienteId(String(os.cliente_id)); 
-  
-  // Correção: Extrai estritamente a primeira string do split [0]
-  if (os.validade) {
-    setValidade(os.validade.split('T')[0]);
-  } else {
-    setValidade('');
-  }
-  
-  if (os.ordens_servico_itens) {
-    const itensTratados = os.ordens_servico_itens.map((item) => ({
-      produto_id: item.produto_id || '',
-      quantidade: Number(item.quantidade || 0),
-      valor_unitario: Number(item.valor_unitario || 0),
-      // Correção: Garante texto puro no campo de data individual
-      data_item: item.data_item ? item.data_item.split('T')[0] : ''
-    }));
-    setItens(itensTratados);
-  } else {
-    setItens([]);
-  }
-}}
+              {/* Botão de Editar protegido contra alterações em OS finalizadas */}
+              {os.status !== 'Finalizada' && (
+                <button 
+                  type="button" 
+                  onClick={() => onEditarOS(os)} // CORREÇÃO: Dispara a ação tratada com splits corretos de data
+                  style={S.botaoAcoesCardStyle}
+                  title="Editar OS"
+                >
+                  <Edit2 size={16}/>
+                </button>
+              )}
 
-                style={S.botaoAcoesCardStyle}
-                title="Editar OS"
-              >
-                <Edit2 size={16}/>
-              </button>
-
-              {/* Botão de Impressão integrado seguindo o padrão correto */}
+              {/* Botão de Impressão */}
               <button 
                 type="button" 
                 onClick={() => lidarComImpressaoOS(os)} 
@@ -78,6 +54,7 @@ onClick={() => {
                 <Printer size={16}/>
               </button>
               
+              {/* Botão de Finalização */}
               {os.status !== 'Finalizada' && (
                 <button type="button" onClick={() => handleFinalizarOS(os)} style={S.botaoFinalizarCardStyle}>
                   <CheckSquare size={16}/> Finalizar
