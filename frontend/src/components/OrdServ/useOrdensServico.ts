@@ -1,207 +1,196 @@
 // src/components/OrdensServico/useOrdensServico.ts
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '../../services/supabaseClient'; 
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../../services/supabaseClient';
+import { gerarHtmlOS } from './LayoutImpressaoOS';
 
-export interface ItemOS {
-  id?: string;
+interface ItemOS {
   produto_id: string;
   quantidade: number;
   valor_unitario: number;
   data_item: string;
 }
 
-export interface OrdemServico {
-  id: string;
-  cliente_id: number;
-  validade: string;
-  status: 'Em Execução' | 'Aguardando Peça' | 'Finalizada';
-  valor_total: number;
-  ordens_servico_itens?: ItemOS[];
-  clientes?: { nome: string };
-}
-
 export function useOrdensServico() {
-  const [busca, setBusca] = useState('');
-  const [carregando, setCarregando] = useState(true);
-  const [ordens, setOrdens] = useState<OrdemServico[]>([]);
+  const [ordens, setOrdens] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<any[]>([]);
   const [itens, setItens] = useState<ItemOS[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [busca, setBusca] = useState('');
+  const [clienteId, setClienteId] = useState('');
+  const [validade, setValidade] = useState('');
   const [idEditando, setIdEditando] = useState<string | null>(null);
-  const [form, setForm] = useState({ clienteId: '', validade: '', status: 'Em Execução' as const });
 
-  const carregarDados = useCallback(async () => {
+  const [especificacao, setEspecificacao] = useState('');
+  const [qtd, setQtd] = useState(1);
+  const [valUnit, setValUnit] = useState(0);
+  const [dataItem, setDataItem] = useState('');
+
+  const carregarDadosDoBanco = useCallback(async () => {
     try {
       setCarregando(true);
-      
-      // Busca as ordens de serviço trazendo os dados do cliente e os itens associados de forma unificada
-      const { data: dadosOS, error } = await supabase
-        .from('ordens_servico')
-        .select('*, clientes(nome), ordens_servico_itens(*)');
-        
-      if (error) throw error;
-      setOrdens((dadosOS as OrdemServico[]) || []);
-    } catch (error) {
-      console.error('Erro ao buscar dados do Supabase:', error);
+      const [resClientes, resOS] = await Promise.all([
+        supabase.from('clientes').select('id, nome').eq('status', 'Ativo'),
+        supabase.from('ordens_servico').select('*, clientes(*), ordens_servico_itens(*)')
+      ]);
+
+      if (resClientes.data) setClientes(resClientes.data);
+      if (resOS.data) setOrdens(resOS.data);
+    } catch (err) {
+      console.error('Erro de conexão com o banco:', err);
     } finally {
       setCarregando(false);
     }
   }, []);
 
-  useEffect(() => {
-    carregarDados();
-  }, [carregarDados]);
+  useEffect(() => { 
+    carregarDadosDoBanco(); 
+  }, [carregarDadosDoBanco]);
+
+  const incluirItemNaGrid = () => {
+    if (!especificacao || qtd <= 0 || valUnit <= 0 || !dataItem) {
+      alert('Preencha todos os campos do item (Especificação, Qtd, Valor e Data).');
+      return;
+    }
+    setItens([...itens, { produto_id: especificacao, quantidade: qtd, valor_unitario: valUnit, data_item: dataItem }]);
+    setEspecificacao(''); setQtd(1); setValUnit(0); setDataItem('');
+  };
+
+  const limparFormulario = () => {
+    setClienteId(''); setValidade(''); setItens([]); setIdEditando(null);
+    setEspecificacao(''); setQtd(1); setValUnit(0); setDataItem('');
+  };
 
   const handleSalvarOS = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.clienteId || !form.validade || itens.length === 0) {
-      alert('Preencha os campos obrigatórios e adicione ao menos um item na tabela.');
+    if (!clienteId || !validade || itens.length === 0) {
+      alert('Preencha os campos obrigatórios e adicione ao menos um item.');
       return;
     }
-
     const valorTotal = itens.reduce((acc, item) => acc + (item.quantidade * item.valor_unitario), 0);
     const codigoOS = idEditando || `OS-${Math.floor(1000 + Math.random() * 9000)}`;
 
     try {
       if (idEditando) {
-        // CORREÇÃO: Captura e validação de erro na atualização da OS pai
-        const { error: erroOS } = await supabase
-          .from('ordens_servico')
-          .update({ 
-            cliente_id: Number(form.clienteId), 
-            validade: form.validade, 
-            status: form.status, 
-            valor_total: valorTotal 
-          })
-          .eq('id', idEditando);
-
-        if (erroOS) throw erroOS;
-
-        // CORREÇÃO: Captura e validação de erro na limpeza dos itens antigos
-        const { error: erroDeleteItens } = await supabase
-          .from('ordens_servico_itens')
-          .delete()
-          .eq('os_id', idEditando);
-
-        if (erroDeleteItens) throw erroDeleteItens;
+        const { error: errorOS } = await supabase.from('ordens_servico').update({ cliente_id: Number(clienteId), validade, valor_total: valorTotal }).eq('id', idEditando);
+        if (errorOS) throw errorOS;
+        const { error: errorDel } = await supabase.from('ordens_servico_itens').delete().eq('os_id', idEditando);
+        if (errorDel) throw errorDel;
       } else {
-        // CORREÇÃO: Captura e validação de erro na inserção da nova OS pai
-        const { error: erroInsertOS } = await supabase
-          .from('ordens_servico')
-          .insert([{ 
-            id: codigoOS, 
-            cliente_id: Number(form.clienteId), 
-            validade: form.validade, 
-            status: form.status, 
-            valor_total: valorTotal 
-          }]);
-
-        if (erroInsertOS) throw erroInsertOS;
+        const { error: errorIns } = await supabase.from('ordens_servico').insert([{ id: codigoOS, cliente_id: Number(clienteId), validade, status: 'Em Execução', valor_total: valorTotal }]);
+        if (errorIns) throw errorIns;
       }
 
-      // Prepara o lote de itens associando ao ID correto da OS
       const payloadItens = itens.map(item => ({
-        os_id: codigoOS,
-        produto_id: item.produto_id,
-        quantidade: item.quantidade,
-        valor_unitario: item.valor_unitario,
-        data_item: item.data_item || new Date().toISOString().substring(0, 10)
+        os_id: codigoOS, produto_id: item.produto_id, quantidade: item.quantidade, valor_unitario: item.valor_unitario, data_item: item.data_item
       }));
 
-      // CORREÇÃO: Captura e validação de erro ao salvar os itens da OS em lote
-      const { error: erroInsertItens } = await supabase
-        .from('ordens_servico_itens')
-        .insert(payloadItens);
+      const { error: errorItens } = await supabase.from('ordens_servico_itens').insert(payloadItens);
+      if (errorItens) throw errorItens;
 
-      if (erroInsertItens) throw erroInsertItens;
-      
-      alert('Ordem de serviço processada com sucesso!');
-      cancelarAcao();
-      await carregarDados();
+      alert('Ordem de serviço gravada com sucesso!');
+      limparFormulario();
+      await carregarDadosDoBanco();
     } catch (error) {
-      console.error(error);
-      alert('Erro operacional no Supabase ao tentar salvar os dados da Ordem de Serviço.');
+      alert('Erro ao processar salvamento no Supabase.');
     }
   };
 
-  const handleFinalizarOS = async (os: OrdemServico) => {
+  const ativarEdicaoOS = (os: any) => {
     if (os.status === 'Finalizada') {
-      alert('Esta Ordem de Serviço já se encontra encerrada e liquidada.');
-      return;
-    }
-
-    if (!confirm(`Deseja liquidar a ${os.id} e lançar R$ ${Number(os.valor_total).toFixed(2)} no caixa?`)) return;
-
-    // CORREÇÃO: Formata a data de entrada do caixa de forma limpa (YYYY-MM-DD) para não corromper os relatórios
-    const dataLimpa = new Date().toISOString().substring(0, 10);
-
-    try {
-      // CORREÇÃO: Validação de erro ao mudar status da OS
-      const { error: erroStatus } = await supabase
-        .from('ordens_servico')
-        .update({ status: 'Finalizada' })
-        .eq('id', os.id);
-
-      if (erroStatus) throw erroStatus;
-
-      // CORREÇÃO: Validação de erro ao inserir faturamento no fluxo de caixa
-      const { error: erroCaixa } = await supabase
-        .from('fluxo_caixa')
-        .insert([{
-          descricao: `Recebimento ref. ${os.id}`,
-          valor: os.valor_total,
-          tipo: 'Entrada',
-          data: dataLimpa,
-          conta_contabil: 'Prestação de Serviços', // Categoria padrão para amarrar com seu gráfico DRE!
-          forma_pagamento: 'Pix'
-        }]);
-
-      if (erroCaixa) throw erroCaixa;
-
-      alert('Faturamento concluído e registrado no seu Fluxo de Caixa!');
-      await carregarDados();
-    } catch (error) {
-      console.error(error);
-      alert('Erro ao processar fluxo de caixa ou atualizar o status da OS.');
-    }
-  };
-
-  const iniciarEdicao = (os: OrdemServico) => {
-    if (os.status === 'Finalizada') {
-      alert('Ordens de Serviço finalizadas não podem ser alteradas.');
+      alert('Ordens de Serviço já finalizadas não podem ser alteradas.');
       return;
     }
     setIdEditando(os.id);
-    setForm({ clienteId: String(os.cliente_id), validade: os.validade, status: os.status });
-    setItens(os.ordens_servico_itens || []);
+    setClienteId(os.cliente_id.toString());
+    setValidade(os.validade ? os.validade.split('T')[0] : '');
+
+    if (os.ordens_servico_itens) {
+      setItens(os.ordens_servico_itens.map((item: any) => ({
+        produto_id: item.produto_id,
+        quantidade: Number(item.quantidade),
+        valor_unitario: Number(item.valor_unitario),
+        data_item: item.data_item ? item.data_item.split('T')[0] : ''
+      })));
+    } else {
+      setItens([]);
+    }
   };
 
-  const cancelarAcao = () => {
-    setForm({ clienteId: '', validade: '', status: 'Em Execução' });
-    setItens([]);
-    setIdEditando(null);
+  const handleFinalizarOS = async (os: any) => {
+    if (os.status === 'Finalizada') return alert('Esta O.S. já está encerrada.');
+    if (!confirm(`Finalizar a ${os.id}? O valor total irá automaticamente para o caixa.`)) return;
+    
+    const dataLimpa = new Date().toISOString().substring(0, 10);
+    try {
+      const { error: errorOS } = await supabase.from('ordens_servico').update({ status: 'Finalizada' }).eq('id', os.id);
+      if (errorOS) throw errorOS;
+
+      const { error: errorCaixa } = await supabase.from('fluxo_caixa').insert([{
+        descricao: `Faturamento OS ref. ${os.id}`, valor: os.valor_total, tipo: 'Entrada', data: dataLimpa, conta_contabil: 'Prestação de Serviços', forma_pagamento: 'Pix'
+      }]);
+      if (errorCaixa) throw errorCaixa;
+
+      alert('OS Finalizada e integrada ao caixa!');
+      await carregarDadosDoBanco();
+    } catch (err) { 
+      alert('Erro ao processar faturamento no caixa.'); 
+    }
   };
 
-  const ordensFiltrados = useMemo(() => {
+  const handleBaixaParcialOS = async (os: any) => {
+    try {
+      const { data: pagamentos, error } = await supabase.from('fluxo_caixa').select('valor').eq('os_id', os.id);
+      if (error) throw error;
+
+      const totalJaPago = (pagamentos || []).reduce((acc, p) => acc + Number(p.valor || 0), 0);
+      const saldoDevedor = Number(os.valor_total) - totalJaPago;
+
+      const inputValor = prompt(`Saldo Total: R$ ${Number(os.valor_total).toFixed(2)}\nSaldo Restante: R$ ${saldoDevedor.toFixed(2)}\n\nDigite o valor da baixa (R$):`, saldoDevedor.toFixed(2));
+      if (!inputValor) return;
+
+      const valorBaixa = Number(inputValor.replace(',', '.'));
+      if (isNaN(valorBaixa) || valorBaixa <= 0 || valorBaixa > Number(saldoDevedor.toFixed(2))) {
+        return alert('Valor informado inválido ou acima do saldo restante.');
+      }
+
+      const { error: erroCaixa } = await supabase.from('fluxo_caixa').insert([{
+        descricao: `Baixa Parcial ref. ${os.id}`, valor: valorBaixa, tipo: 'Entrada', data: new Date().toISOString().substring(0, 10), conta_contabil: 'Prestação de Serviços', forma_pagamento: 'Pix', os_id: os.id
+      }]);
+      if (erroCaixa) throw erroCaixa;
+
+      if (Number((totalJaPago + valorBaixa).toFixed(2)) >= Number(os.valor_total)) {
+        await supabase.from('ordens_servico').update({ status: 'Finalizada' }).eq('id', os.id);
+        alert(`O.S. ${os.id} quitada e encerrada.`);
+      } else {
+        alert(`Baixa parcial de R$ ${valorBaixa.toFixed(2)} registrada!`);
+      }
+      await carregarDadosDoBanco();
+    } catch (err) {
+      alert('Erro ao processar baixa parcial.');
+    }
+  };
+
+  const lidarComImpressaoOS = (os: any) => {
+    if (!os) return;
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = '0';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow?.document || iframe.contentDocument;
+    if (doc) { doc.open(); doc.write(gerarHtmlOS(os, "/logo.png")); doc.close(); }
+    setTimeout(() => { document.body.removeChild(iframe); }, 2000);
+  };
+
+  const totalGeralCalculado = itens.reduce((acc, i) => acc + (i.quantidade * i.valor_unitario), 0);
+  
+  const ordensFiltradas = ordens.filter(os => {
     const termo = busca.toLowerCase().trim();
-    if (!termo) return ordens;
-    return ordens.filter(os => 
-      String(os.id).toLowerCase().includes(termo) || 
-      os.clientes?.nome?.toLowerCase().includes(termo)
-    );
-  }, [ordens, busca]);
+    return !termo || String(os.id).toLowerCase().includes(termo) || os.clientes?.nome?.toLowerCase().includes(termo);
+  });
 
   return {
-    busca, 
-    setBusca, 
-    carregando, 
-    itens, 
-    setItens, 
-    form, 
-    setForm, 
-    idEditando, 
-    cancelarAcao,
-    ordensFiltrados, 
-    handleSalvarOS, 
-    iniciarEdicao, 
-    handleFinalizarOS
+    carregando, busca, setBusca, clientes, clienteId, setClienteId, validade, setValidade, itens, setItens, idEditando,
+    especificacao, setEspecificacao, qtd, setQtd, valUnit, setValUnit, dataItem, setDataItem,
+    incluirItemNaGrid, handleSalvarOS, ativarEdicaoOS, handleFinalizarOS, handleBaixaParcialOS, lidarComImpressaoOS,
+    totalGeralCalculado, ordensFiltradas, cancelarEdicao: limparFormulario
   };
 }
