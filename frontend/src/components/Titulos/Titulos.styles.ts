@@ -1,4 +1,3 @@
-// src/components/Titulos/Titulos.styles.ts
 import React from 'react';
 
 export const containerStyle: React.CSSProperties = {
@@ -75,20 +74,15 @@ export const dropdownSugestoesStyle: React.CSSProperties = {
   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
 };
 
-// Altere o itemSugestaoStyle no seu Titulos.styles.ts para este formato de função:
+// O hover é processado dinamicamente via parâmetro boolean
 export const itemSugestaoStyle = (isHovered: boolean): React.CSSProperties => ({
   padding: '10px 12px',
   fontSize: '14px',
   color: '#1f2937',
   cursor: 'pointer',
   borderBottom: '1px solid #f3f4f6',
-  backgroundColor: isHovered ? '#f1f5f9' : '#ffffff' // O hover agora é processado aqui dentro!
+  backgroundColor: isHovered ? '#f1f5f9' : '#ffffff'
 });
-
-
-export const itemSugestaoHoverStyle: React.CSSProperties = {
-  backgroundColor: '#f1f5f9'
-};
 
 export const botaoSalvarStyle: React.CSSProperties = {
   backgroundColor: '#0284c7',
@@ -130,14 +124,20 @@ export const tdStyle: React.CSSProperties = {
   color: '#334155'
 };
 
-// Substitua a função badgeStyle no final do seu Titulos.styles.ts por esta:
+// Badge Dinâmico atualizado contemplando todos os status declarados na sua tipagem
 export const badgeStyle = (status: string, tipo: string): React.CSSProperties => {
-  let bgColor = '#fef3c7'; // Pendente (Amarelo)
+  let bgColor = '#fef3c7'; // Padrão / Pendente (Amarelo)
   let textColor = '#b45309';
 
   if (status === 'Pago') {
     bgColor = tipo === 'Pagar' ? '#fee2e2' : '#dcfce7'; // Vermelho claro para Pagar, Verde para Receber
     textColor = tipo === 'Pagar' ? '#b91c1c' : '#15803d';
+  } else if (status === 'Atrasado') {
+    bgColor = '#fde8e8'; // Vermelho mais visível para Alerta
+    textColor = '#9b1c1c';
+  } else if (status === 'Cancelado') {
+    bgColor = '#e2e8f0'; // Cinza neutro
+    textColor = '#475569';
   }
 
   return {
@@ -146,10 +146,10 @@ export const badgeStyle = (status: string, tipo: string): React.CSSProperties =>
     fontSize: '12px',
     fontWeight: 'bold',
     backgroundColor: bgColor,
-    color: textColor
+    color: textColor,
+    display: 'inline-block'
   };
 };
-
 
 export const botaoAcaoStyle: React.CSSProperties = {
   backgroundColor: '#16a34a',

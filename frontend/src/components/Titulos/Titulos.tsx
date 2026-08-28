@@ -18,6 +18,7 @@ export default function Titulos() {
     carregarTitulos,
     tituloEmEdicao,
     iniciarEdicao,
+    handleGerarContasFixas,
     cancelarEdicao 
   } = useTitulos();
 
@@ -34,7 +35,30 @@ export default function Titulos() {
         aoSalvar={carregarTitulos}
         aoAtualizar={handleAtualizarTitulo} 
       />
+     
 
+       {/* BOTÃO GERADOR DE CONTAS FIXAS */}
+    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+      <button 
+        type="button" 
+        onClick={handleGerarContasFixas}
+        style={{
+          backgroundColor: '#7c3aed', // Roxo moderno para diferenciar das outras ações
+          color: '#ffffff',
+          padding: '10px 18px',
+          border: 'none',
+          borderRadius: '4px',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          fontSize: '14px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+        }}
+      >
+        ⚙️ Gerar Contas Fixas do Mês
+      </button>
+    </div>
+
+       
       {/* BARRA DE PESQUISA */}
       <div style={S.buscaContainerStyle}>
         <input 

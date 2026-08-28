@@ -148,3 +148,4 @@ export const botaoDeletar: React.CSSProperties = {
   justifyContent: 'center',
   transition: 'background-color 0.2s',
 };
+

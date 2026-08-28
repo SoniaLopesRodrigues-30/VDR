@@ -1,4 +1,3 @@
-// src/components/Titulos/useTitulos.ts
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
 
@@ -37,7 +36,9 @@ export function useTitulos() {
     }
   }, []);
 
-  useEffect(() => { carregarTitulos(); }, [carregarTitulos]);
+  useEffect(() => { 
+    carregarTitulos(); 
+  }, [carregarTitulos]);
 
   // Ativa o modo de edição salvando o título selecionado no estado
   const iniciarEdicao = (titulo: Titulo) => {
@@ -52,9 +53,84 @@ export function useTitulos() {
   const cancelarEdicao = () => {
     setTituloEmEdicao(null);
   };
-
   
-  // FUNÇÃO DE ATUALIZAÇÃO (Faltava declarar/retornar esta função no escopo interno)
+  const handleGerarContasFixas = async () => {
+    // 1. Obtém o mês/ano atual apenas para sugerir um padrão no prompt
+    const hoje = new Date();
+    const padraoMesAno = `${String(hoje.getMonth() + 1).padStart(2, '0')}/${hoje.getFullYear()}`;
+
+    // 2. Pergunta ao usuário qual período ele deseja processar
+    const periodoInformado = prompt(
+      "Para qual mês/ano deseja gerar as contas fixas? (Formato: MM/AAAA)", 
+      padraoMesAno
+    );
+
+    // Se o usuário cancelar ou deixar em branco, interrompe a execução
+    if (!periodoInformado) return;
+
+    // 3. Valida se o formato digitado está correto via Expressão Regular (Regex)
+    const regexValida = /^(0[1-9]|1[0-2])\/\d{4}$/;
+    if (!regexValida.test(periodoInformado.trim())) {
+      alert("Formato inválido! Por favor, utilize o padrão MM/AAAA (Exemplo: 09/2026).");
+      return;
+    }
+
+    // 4. Separa o mês e o ano digitados pelo usuário
+    const [mes, ano] = periodoInformado.trim().split('/');
+
+    try {
+      setCarregando(true);
+
+      // Busca os modelos base ativos
+      const { data: moldes, error: erroMoldes } = await supabase
+        .from('contas_fixas')
+        .select('*')
+        .eq('status_ativo', true);
+
+      if (erroMoldes) throw erroMoldes;
+      if (!moldes || moldes.length === 0) {
+        alert('Nenhuma conta fixa ativa encontrada para gerar.');
+        return;
+      }
+
+      // 5. Prepara os títulos reais com as datas apontando para o mês/ano indicados
+      const novosTitulos = moldes.map((molde) => {
+        const diaStr = String(molde.dia_vencimento).padStart(2, '0');
+        
+        // Monta a data no padrão aceito pelo banco (AAAA-MM-DD)
+        const dataVencimentoFormatada = `${ano}-${mes}-${diaStr}`;
+
+        return {
+          nfe_id: `FIXA - ${molde.descricao}`,
+          cliente_id: molde.cliente_id,
+          parcela: 1,
+          valor_parcela: molde.valor,
+          data_vencimento: dataVencimentoFormatada,
+          tipo: molde.tipo,
+          status: 'Pendente'
+        };
+      });
+
+      // 6. Insere o lote no banco de dados de uma vez só
+      const { error: erroInsert } = await supabase
+        .from('titulos_receber')
+        .insert(novosTitulos);
+
+      if (erroInsert) throw erroInsert;
+
+      alert(`${novosTitulos.length} títulos foram gerados com sucesso para o período ${mes}/${ano}!`);
+      await carregarTitulos(); // Recarrega a tabela principal da tela
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao processar a geração das contas fixas.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+
+
+  // FUNÇÃO DE ATUALIZAÇÃO
   const handleAtualizarTitulo = async (id: string, dadosAtualizados: Partial<Titulo>) => {
     try {
       const { error } = await supabase
@@ -79,32 +155,45 @@ export function useTitulos() {
     if (!confirm(`Confirmar o ${acaoTexto} do título ref. ${titulo.nfe_id} no valor de R$ ${Number(titulo.valor_parcela).toFixed(2)}?`)) return;
 
     try {
-      await supabase.from('titulos_receber').update({ status: 'Pago' }).eq('id', titulo.id);
+      // Ajuste: Captura e validação de erro ao atualizar o status do título
+      const { error: updateError } = await supabase
+        .from('titulos_receber')
+        .update({ status: 'Pago' })
+        .eq('id', titulo.id);
       
-      await supabase.from('fluxo_caixa').insert([{
-        descricao: `${titulo.tipo === 'Pagar' ? 'Pagamento' : 'Recebimento'} Ref. ${titulo.nfe_id} - Parc. ${titulo.parcela}`,
-        valor: titulo.valor_parcela,
-        tipo: titulo.tipo === 'Pagar' ? 'Saída' : 'Entrada',
-        data: new Date().toISOString()
-      }]);
+      if (updateError) throw updateError;
+      
+      // Ajuste: Captura e validação de erro ao inserir no fluxo de caixa
+      const { error: insertError } = await supabase
+        .from('fluxo_caixa')
+        .insert([{
+          descricao: `${titulo.tipo === 'Pagar' ? 'Pagamento' : 'Recebimento'} Ref. ${titulo.nfe_id} - Parc. ${titulo.parcela}`,
+          valor: titulo.valor_parcela,
+          tipo: titulo.tipo === 'Pagar' ? 'Saída' : 'Entrada',
+          data: new Date().toISOString()
+        }]);
+
+      if (insertError) throw insertError;
 
       alert(`Título liquidado e registrado no Fluxo de Caixa!`);
       await carregarTitulos();
     } catch (error) {
+      console.error(error);
       alert('Erro ao processar a baixa do título.');
     }
   };
-   //deletar os lançamentos de títulos
-    const handleDeletarTitulo = async (id: string, nfeId: string) => {
+
+  // Deletar os lançamentos de títulos
+  const handleDeletarTitulo = async (id: string, nfeId: string) => {
     if (!confirm(`Tem certeza absoluta que deseja excluir permanentemente o título ref. ${nfeId}?`)) {
         return;
     }
 
     try {
         const { error } = await supabase
-        .from('titulos_receber')
-        .delete()
-        .eq('id', id);
+          .from('titulos_receber')
+          .delete()
+          .eq('id', id);
 
         if (error) throw error;
 
@@ -112,7 +201,7 @@ export function useTitulos() {
         
         // Se o título deletado era o que estava sendo editado, limpa o formulário
         if (tituloEmEdicao?.id === id) {
-        cancelarEdicao();
+          cancelarEdicao();
         }
 
         await carregarTitulos(); // Recarrega os registros da tabela
@@ -120,21 +209,19 @@ export function useTitulos() {
         console.error(error);
         alert('Erro ao tentar deletar o título no Supabase.');
     }
-    };
-
+  };
 
   // Lógica de pesquisa local combinada
   const titulosFiltrados = useMemo(() => {
     const termo = busca.toLowerCase().trim();
     if (!termo) return titulos;
     return titulos.filter(t => 
-      t.nfe_id.toLowerCase().includes(termo) || 
+      String(t.nfe_id).toLowerCase().includes(termo) || 
       t.clientes?.nome?.toLowerCase().includes(termo) ||
       t.tipo.toLowerCase().includes(termo)
     );
   }, [titulos, busca]);
 
-  // Retorno contendo exatamente todas as propriedades mapeadas pelo Titulos.tsx
   return { 
     busca, 
     setBusca, 
@@ -146,6 +233,7 @@ export function useTitulos() {
     tituloEmEdicao,
     handleDeletarTitulo,
     iniciarEdicao,
+    handleGerarContasFixas,
     cancelarEdicao 
   };
 }

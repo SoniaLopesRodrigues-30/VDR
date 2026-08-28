@@ -120,7 +120,7 @@ export function useFluxoCaixa() {
       };
 
       if (idEditando) {
-        if (idEditando.startsWith('prev-')) {
+        if (String(idEditando).startsWith('prev-')) {
           alert('Ações de escrita em títulos previstos devem ser feitas na tela de Contas a Pagar/Receber.');
           return;
         }
@@ -130,7 +130,7 @@ export function useFluxoCaixa() {
           .update(payload)
           .eq('id', idEditando);
         if (error) throw error;
-        alert('Lançamento atualizado com sucesso!');
+        alert('Lançamento updated com sucesso!');
       } else {
         const { error } = await supabase
           .from('fluxo_caixa')
@@ -148,7 +148,8 @@ export function useFluxoCaixa() {
   };
 
   const excluir = async (id: string) => {
-    if (id.startsWith('prev-')) {
+    // CORREÇÃO: Conversão protetiva para string e verificação com o prefixo 'prev-' correto
+    if (id && String(id).startsWith('prev-')) {
       alert('Este registro provém do Contas a Pagar/Receber. Gerencie a exclusão na tela de origem.');
       return;
     }
@@ -169,7 +170,8 @@ export function useFluxoCaixa() {
   };
 
   const prepararEdicao = (t: Transacao) => {
-    if (t.id.startsWith('prev-')) {
+    // CORREÇÃO: Conversão protetiva para string e verificação com o prefixo 'prev-' correto
+    if (t.id && String(t.id).startsWith('prev-')) {
       alert('Títulos previstos não podem ser editados por aqui. Utilize a tela de Contas a Pagar/Receber.');
       return;
     }

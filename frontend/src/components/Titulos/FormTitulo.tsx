@@ -19,9 +19,12 @@ export default function FormTitulo({ tituloEmEdicao, cancelarEdicao, aoSalvar, a
   const [termoCliente, setTermoCliente] = useState('');
   const [valor, setValor] = useState<number | ''>('');
   const [vencimento, setVencimento] = useState('');
+  
+  // NOVO ESTADO: Define se este lançamento também deve virar um molde de Conta Fixa
+  const [ehContaFixa, setEhContaFixa] = useState<'Nao' | 'Sim'>('Nao');
 
   const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
-  const [listaClientes, setListaClientes] = useState<Clientes[]>([]); // Inicializado sempre como array vazio
+  const [listaClientes, setListaClientes] = useState<Clientes[]>([]);
   const [buscandoBanco, setBuscandoBanco] = useState(false);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
@@ -33,6 +36,7 @@ export default function FormTitulo({ tituloEmEdicao, cancelarEdicao, aoSalvar, a
       setTermoCliente(tituloEmEdicao.clientes?.nome || '');
       setValor(tituloEmEdicao.valor_parcela);
       setVencimento(tituloEmEdicao.data_vencimento);
+      setEhContaFixa('Nao'); // Desabilita a opção ao editar um título já existente
     }
   }, [tituloEmEdicao]);
 
@@ -47,6 +51,7 @@ export default function FormTitulo({ tituloEmEdicao, cancelarEdicao, aoSalvar, a
 
     const delayDebounce = setTimeout(async () => {
       setBuscandoBanco(true);
+      setHoverIndex(null);
       try {
         const { data } = await supabase
           .from('clientes')
@@ -62,17 +67,30 @@ export default function FormTitulo({ tituloEmEdicao, cancelarEdicao, aoSalvar, a
         setBuscandoBanco(false); 
       }
     }, 300);
+
     return () => clearTimeout(delayDebounce);
   }, [termoCliente, tituloEmEdicao]);
 
   const limparFormulario = () => {
-    setNfeId('AVULSO'); setClienteId(''); setTermoCliente(''); setValor(''); setVencimento(''); setTipo('Receber');
+    setNfeId('AVULSO'); 
+    setClienteId(''); 
+    setTermoCliente(''); 
+    setValor(''); 
+    setVencimento(''); 
+    setTipo('Receber');
+    setEhContaFixa('Nao');
     cancelarEdicao();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clienteId || !valor || !vencimento) return alert('Preencha os campos obrigatórios.');
+    
+    if (!clienteId) {
+      return alert(`Por favor, selecione um ${tipo === 'Pagar' ? 'Fornecedor' : 'Cliente'} válido na lista de sugestões.`);
+    }
+    if (!valor || !vencimento) {
+      return alert('Preencha todos os campos obrigatórios.');
+    }
 
     const dadosCampos = { 
       nfe_id: nfeId, 
@@ -85,17 +103,47 @@ export default function FormTitulo({ tituloEmEdicao, cancelarEdicao, aoSalvar, a
 
     if (tituloEmEdicao) {
       await aoAtualizar(tituloEmEdicao.id, dadosCampos);
+      await aoSalvar(); 
       limparFormulario();
-      aoSalvar();
     } else {
       try {
-        const { error } = await supabase.from('titulos_receber').insert([{ ...dadosCampos, status: 'Pendente' }]);
-        if (error) throw error;
-        alert(`Título a ${tipo.toLowerCase()} lançado com sucesso!`);
+        // 1. Lança o título atual normalmente na tabela financeira
+        const { error: erroTitulo } = await supabase
+          .from('titulos_receber')
+          .insert([{ ...dadosCampos, status: 'Pendente' }]);
+        
+        if (erroTitulo) throw erroTitulo;
+
+        // 2. Se marcou "Sim", salva também o molde na tabela de contas fixas
+        if (ehContaFixa === 'Sim') {
+          // Extrai o dia do vencimento digitado (Ex: de "2026-08-10" extrai o número 10)
+          const diaVencimento = new Date(vencimento).getUTCDate();
+
+          const { error: erroFixa } = await supabase
+            .from('contas_fixas')
+            .insert([{
+              descricao: nfeId === 'AVULSO' ? `Lançamento manual de ${termoCliente}` : nfeId,
+              cliente_id: Number(clienteId),
+              valor: Number(valor),
+              tipo: tipo,
+              dia_vencimento: diaVencimento,
+              status_ativo: true
+            }]);
+
+          if (erroFixa) throw erroFixa;
+        }
+        
+        alert(
+          ehContaFixa === 'Sim' 
+            ? `Título lançado e configurado como Conta Fixa com sucesso!` 
+            : `Título lançado com sucesso!`
+        );
+        
+        await aoSalvar(); 
         limparFormulario();
-        aoSalvar(); 
       } catch (err) { 
-        alert('Erro na operação do Supabase.'); 
+        console.error(err);
+        alert('Erro na operação do Supabase ao tentar salvar o registro.'); 
       }
     }
   };
@@ -121,10 +169,14 @@ export default function FormTitulo({ tituloEmEdicao, cancelarEdicao, aoSalvar, a
           <div style={S.selectContainerStyle}>
             <input 
               type="text" 
-              placeholder={`Buscar...`}
+              placeholder="Digite para buscar..."
               style={S.inputStyle} 
               value={termoCliente}
-              onChange={e => { setTermoCliente(e.target.value); setMostrarSugestoes(true); if (!e.target.value) setClienteId(""); }}
+              onChange={e => { 
+                setTermoCliente(e.target.value); 
+                setMostrarSugestoes(true); 
+                if (!e.target.value) setClienteId(""); 
+              }}
               onFocus={() => setMostrarSugestoes(true)}
               onBlur={() => setTimeout(() => setMostrarSugestoes(false), 250)}
               required
@@ -166,6 +218,21 @@ export default function FormTitulo({ tituloEmEdicao, cancelarEdicao, aoSalvar, a
           <label style={S.labelStyle}>Vencimento</label>
           <input type="date" style={S.inputStyle} value={vencimento} onChange={e => setVencimento(e.target.value)} required />
         </div>
+
+        {/* NOVO CAMPO SELECT: Aparece apenas para novos lançamentos */}
+        {!tituloEmEdicao && (
+          <div>
+            <label style={S.labelStyle}>Conta Fixa Mensal?</label>
+            <select 
+              style={{ ...S.inputStyle, backgroundColor: ehContaFixa === 'Sim' ? '#f3e8ff' : '#ffffff', borderColor: ehContaFixa === 'Sim' ? '#c084fc' : '#cbd5e1' }} 
+              value={ehContaFixa} 
+              onChange={e => setEhContaFixa(e.target.value as any)}
+            >
+              <option value="Nao">Não (Lançamento Único)</option>
+              <option value="Sim">Sim (Salvar como Recorrente)</option>
+            </select>
+          </div>
+        )}
       </div>
       
       <div style={{ display: 'flex', gap: '10px' }}>
