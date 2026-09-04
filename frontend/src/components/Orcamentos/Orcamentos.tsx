@@ -3,7 +3,6 @@ import { supabase } from '../../services/supabaseClient';
 import { FileText, Search } from 'lucide-react';
 import * as S from './Orcamentos.styles';
 
-// Importação dos subcomponentes novos
 import { FormularioOrcamento } from './FormularioOrcamento';
 import { ListaOrcamentos } from './ListaOrcamentos';
 import { gerarHtmlOrcamento } from './LayoutImpressao';

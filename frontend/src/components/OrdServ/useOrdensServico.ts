@@ -116,69 +116,119 @@ export function useOrdensServico() {
     }
   };
 
-  const handleFinalizarOS = async (os: any) => {
+    const handleFinalizarOS = async (os: any) => {
     if (os.status === 'Finalizada') return alert('Esta O.S. já está encerrada.');
-    if (!confirm(`Finalizar a ${os.id}? O valor total irá automaticamente para o caixa.`)) return;
+    if (!confirm(`Finalizar a ${os.id}? O valor total de R$ ${Number(os.valor_total).toFixed(2)} irá automaticamente para o caixa.`)) return;
     
     const dataLimpa = new Date().toISOString().substring(0, 10);
     try {
+      // 1. Atualiza o status da OS para Finalizada
       const { error: errorOS } = await supabase.from('ordens_servico').update({ status: 'Finalizada' }).eq('id', os.id);
       if (errorOS) throw errorOS;
 
+      // 2. Insere a ENTRADA TOTAL no fluxo de caixa (Garantindo o os_id)
       const { error: errorCaixa } = await supabase.from('fluxo_caixa').insert([{
-        descricao: `Faturamento OS ref. ${os.id}`, valor: os.valor_total, tipo: 'Entrada', data: dataLimpa, conta_contabil: 'Prestação de Serviços', forma_pagamento: 'Pix'
+        descricao: `Faturamento OS ref. ${os.id}`, 
+        valor: Number(os.valor_total), 
+        tipo: 'Entrada', 
+        data: dataLimpa, 
+        conta_contabil: 'Prestação de Serviços', 
+        forma_pagamento: 'Pix',
+        os_id: os.id 
       }]);
       if (errorCaixa) throw errorCaixa;
 
-      alert('OS Finalizada e integrada ao caixa!');
-      await carregarDadosDoBanco();
+      alert('OS Finalizada e integrada ao caixa com sucesso!');
+      await carregarDadosDoBanco(); // Atualiza a lista na tela na hora
     } catch (err) { 
+      console.error('Erro ao faturar OS:', err);
       alert('Erro ao processar faturamento no caixa.'); 
     }
   };
 
-  const handleBaixaParcialOS = async (os: any) => {
+   const handleBaixaParcialOS = async (os: any) => {
     try {
+      // 1. Busca quanto já foi pago dessa OS para saber o saldo devedor
       const { data: pagamentos, error } = await supabase.from('fluxo_caixa').select('valor').eq('os_id', os.id);
       if (error) throw error;
 
       const totalJaPago = (pagamentos || []).reduce((acc, p) => acc + Number(p.valor || 0), 0);
       const saldoDevedor = Number(os.valor_total) - totalJaPago;
 
+      if (saldoDevedor <= 0) {
+        alert('Esta OS já foi totalmente paga.');
+        return;
+      }
+
+      // 2. Pergunta o valor da baixa
       const inputValor = prompt(`Saldo Total: R$ ${Number(os.valor_total).toFixed(2)}\nSaldo Restante: R$ ${saldoDevedor.toFixed(2)}\n\nDigite o valor da baixa (R$):`, saldoDevedor.toFixed(2));
       if (!inputValor) return;
 
       const valorBaixa = Number(inputValor.replace(',', '.'));
-      if (isNaN(valorBaixa) || valorBaixa <= 0 || valorBaixa > Number(saldoDevedor.toFixed(2))) {
+      if (isNaN(valorBaixa) || valorBaixa <= 0 || valorBaixa > Number(saldoDevedor.toFixed(2).replace(',', '.'))) {
         return alert('Valor informado inválido ou acima do saldo restante.');
       }
 
+      // 3. Insere a ENTRADA PARCIAL no fluxo de caixa
       const { error: erroCaixa } = await supabase.from('fluxo_caixa').insert([{
-        descricao: `Baixa Parcial ref. ${os.id}`, valor: valorBaixa, tipo: 'Entrada', data: new Date().toISOString().substring(0, 10), conta_contabil: 'Prestação de Serviços', forma_pagamento: 'Pix', os_id: os.id
+        descricao: `Baixa Parcial ref. ${os.id}`, 
+        valor: valorBaixa, 
+        tipo: 'Entrada', 
+        data: new Date().toISOString().substring(0, 10), 
+        conta_contabil: 'Prestação de Serviços', 
+        forma_pagamento: 'Pix', 
+        os_id: os.id
       }]);
       if (erroCaixa) throw erroCaixa;
 
-      if (Number((totalJaPago + valorBaixa).toFixed(2)) >= Number(os.valor_total)) {
-        await supabase.from('ordens_servico').update({ status: 'Finalizada' }).eq('id', os.id);
-        alert(`O.S. ${os.id} quitada e encerrada.`);
+      // 4. Se o novo total pago atingir o valor da OS, encerra ela automaticamente
+      const novoTotalPago = Number((totalJaPago + valorBaixa).toFixed(2));
+      const valorTotalOS = Number(Number(os.valor_total).toFixed(2));
+
+      if (novoTotalPago >= valorTotalOS) {
+        const { error: errorOS } = await supabase.from('ordens_servico').update({ status: 'Finalizada' }).eq('id', os.id);
+        if (errorOS) throw errorOS;
+        alert(`Baixa de R$ ${valorBaixa.toFixed(2)} registrada! O.S. ${os.id} foi quitada e encerrada.`);
       } else {
-        alert(`Baixa parcial de R$ ${valorBaixa.toFixed(2)} registrada!`);
+        alert(`Baixa parcial de R$ ${valorBaixa.toFixed(2)} registrada com sucesso!`);
       }
-      await carregarDadosDoBanco();
+      
+      await carregarDadosDoBanco(); // Atualiza a lista na tela na hora
     } catch (err) {
+      console.error('Erro na baixa parcial:', err);
       alert('Erro ao processar baixa parcial.');
     }
   };
 
   const lidarComImpressaoOS = (os: any) => {
-    if (!os) return;
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = '0';
-    document.body.appendChild(iframe);
-    const doc = iframe.contentWindow?.document || iframe.contentDocument;
-    if (doc) { doc.open(); doc.write(gerarHtmlOS(os, "/logo.png")); doc.close(); }
-    setTimeout(() => { document.body.removeChild(iframe); }, 2000);
-  };
+  if (!os) return;
+  
+  const iframe = document.createElement('iframe');
+  // Mantém oculto para não quebrar o layout da sua tela
+  iframe.style.position = 'fixed'; 
+  iframe.style.width = '0'; 
+  iframe.style.height = '0'; 
+  iframe.style.border = '0';
+  
+  document.body.appendChild(iframe);
+  
+  const doc = iframe.contentWindow?.document || iframe.contentDocument;
+  if (doc) { 
+    doc.open(); 
+    doc.write(gerarHtmlOS(os, "/logo.png")); 
+    doc.close(); 
+  }
+
+  // DISPARO DA IMPRESSÃO: Espera o iframe processar o HTML e chama o print
+  iframe.contentWindow?.focus();
+  iframe.contentWindow?.print();
+
+  // Remove o elemento após a janela de impressão ser fechada pelo usuário
+  setTimeout(() => { 
+    document.body.removeChild(iframe); 
+  }, 2000);
+};
+
 
   const totalGeralCalculado = itens.reduce((acc, i) => acc + (i.quantidade * i.valor_unitario), 0);
   

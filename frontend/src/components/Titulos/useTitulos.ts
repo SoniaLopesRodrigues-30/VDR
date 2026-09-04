@@ -150,12 +150,13 @@ export function useTitulos() {
   };
 
   // Função dinâmica para efetuar o pagamento/recebimento
+    // Função dinâmica para efetuar o pagamento/recebimento
   const handleBaixarTitulo = async (titulo: Titulo) => {
     const acaoTexto = titulo.tipo === 'Pagar' ? 'pagamento' : 'recebimento';
     if (!confirm(`Confirmar o ${acaoTexto} do título ref. ${titulo.nfe_id} no valor de R$ ${Number(titulo.valor_parcela).toFixed(2)}?`)) return;
 
     try {
-      // Ajuste: Captura e validação de erro ao atualizar o status do título
+      // 1. Atualiza o status do título
       const { error: updateError } = await supabase
         .from('titulos_receber')
         .update({ status: 'Pago' })
@@ -163,23 +164,38 @@ export function useTitulos() {
       
       if (updateError) throw updateError;
       
-      // Ajuste: Captura e validação de erro ao inserir no fluxo de caixa
+      // Ajuste de Data: Formata para YYYY-MM-DD de forma segura para evitar erro 400
+      const dataHoje = new Date().toISOString().split('T')[0];
+
+      // 2. Insere no fluxo de caixa
       const { error: insertError } = await supabase
         .from('fluxo_caixa')
         .insert([{
           descricao: `${titulo.tipo === 'Pagar' ? 'Pagamento' : 'Recebimento'} Ref. ${titulo.nfe_id} - Parc. ${titulo.parcela}`,
-          valor: titulo.valor_parcela,
-          tipo: titulo.tipo === 'Pagar' ? 'Saída' : 'Entrada',
-          data: new Date().toISOString()
+          valor: Number(titulo.valor_parcela),
+          tipo: titulo.tipo === 'Pagar' ? 'saida' : 'entrada', // Alterado aqui
+          data: dataHoje
         }]);
 
-      if (insertError) throw insertError;
+            if (insertError) {
+        // Transforma o objeto de erro em texto para vermos na tela o campo problemático
+        console.error("Mensagem do Banco:", insertError.message);
+        console.error("Detalhes do Banco:", insertError.details);
+        console.error("Dica do Banco:", insertError.hint);
+        
+        // Joga o erro detalhado direto no alerta da tela
+        alert(`Erro do Banco: ${insertError.message} \nDetalhes: ${insertError.details}`);
+        throw insertError;
+      }
+
 
       alert(`Título liquidado e registrado no Fluxo de Caixa!`);
       await carregarTitulos();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert('Erro ao processar a baixa do título.');
+      // Se o banco trouxer uma mensagem amigável, nós mostramos no alert
+      const mensagemErro = error?.message || 'Erro ao processar a baixa do título.';
+      alert(`Não foi possível baixar o título. Motivo: ${mensagemErro}`);
     }
   };
 
